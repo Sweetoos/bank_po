@@ -1,0 +1,79 @@
+classDiagram
+    direction LR
+
+    %% Interfejsy
+    interface Transactable {
+        <<interface>>
+        +deposit(amount: double)
+        +withdraw(amount: double): boolean
+        +transfer(targetAccount: Account, amount: double): boolean
+    }
+
+    %% Główna Klasa Zarządzająca (spełnia wymóg Kolekcji, DB, Raportu)
+    class Bank {
+        -Map<String, Client> clients
+        +addClient(client: Client)
+        +getClient(id: String): Client
+        +generateDailyReport(): String
+        +saveAllDataToDB()
+        +loadDataFromFiles()
+    }
+
+    %% Klasa Klienta (posiada Konta)
+    class Client {
+        -String clientId
+        -String name
+        -String address
+        -List<Account> accounts
+        +addAccount(account: Account)
+        +getAccount(accountId: String): Account
+    }
+
+    %% Klasa Abstrakcyjna (spełnia wymóg Klas Abstrakcyjnych, implementuje Interfejs)
+    abstract class Account {
+        <<abstract>>
+        #String accountId
+        #double balance
+        #List<Transaction> transactionHistory
+        +getBalance(): double
+        +recordTransaction(type: String, amount: double)
+    }
+
+    %% Podklasy Kont (spełniają wymóg Dziedziczenia i Polimorfizmu)
+    class CheckingAccount {
+        -double overdraftLimit
+        +withdraw(amount: double): boolean
+    }
+
+    class SavingsAccount {
+        -double interestRate
+        +addInterest()
+        +withdraw(amount: double): boolean  %% Polimorfizm (może mieć inną logikę niż CheckingAccount)
+    }
+
+    %% Klasa Transakcji
+    class Transaction {
+        -String transactionId
+        -String type
+        -double amount
+        -LocalDate date
+        -String sourceAccountId
+        -String targetAccountId
+    }
+
+    %% Wyjątki (spełniają wymóg obsługi Wyjątków)
+    class BankException {
+        <<enumeration>>
+        InsufficientFundsException
+        InvalidAmountException
+        ClientNotFoundException
+    }
+
+    %% Relacje
+    Transactable <|.. Account : implements
+    Account <|-- CheckingAccount : inherits
+    Account <|-- SavingsAccount : inherits
+
+    Bank "1" -- "many" Client : manages >
+    Client "1" -- "many" Account : owns >
+    Account "1" -- "many" Transaction : records >
