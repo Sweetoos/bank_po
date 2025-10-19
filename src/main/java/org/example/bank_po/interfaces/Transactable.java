@@ -1,4 +1,6 @@
-package model;
+package org.example.bank_po.interfaces;
+
+import org.example.bank_po.model.Account;
 
 public interface Transactable {
     public void deposit(double amount);

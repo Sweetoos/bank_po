@@ -1,4 +1,4 @@
-package org.example.bank_po;
+package org.example.bank_po.gui;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;

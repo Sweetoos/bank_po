@@ -1,4 +1,4 @@
-package model;
+package org.example.bank_po.model;
 
 import java.util.List;
 
