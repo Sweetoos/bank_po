@@ -1,53 +1,56 @@
 package org.example.bank_po.model;
 
-import org.example.bank_po.interfaces.Asset;
 import org.example.bank_po.interfaces.Transactable;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class Account implements Transactable, Asset {
-    protected String accountId;
-    protected double balance;
-    protected List<Transaction> transactionHistory;
+public abstract class Account implements Transactable {
 
-    public Account(String accountId, double balance) {
-        this.accountId = accountId;
-        this.balance = balance;
+    protected final int               accoutnNumber;
+    public    final String            accountType;
+
+    protected       double            balance;
+    protected final List<Transaction> transactionHistory;
+
+    protected final MainVariables mv;
+    protected final UserInterface UI;
+
+    Account(int accoutnNumber, String accountType, MainVariables mv, UserInterface UI) {
+        this.accoutnNumber = accoutnNumber;
+        this.accountType   = accountType;
+
+        this.balance = 0;
         this.transactionHistory = new ArrayList<>();
+
+        this.mv = mv;
+        this.UI = UI;
     }
 
-    public double getBalance() {
-        return 0;
+    protected double getBalance() {
+        return balance;
+    }
+    protected int getAccountNumber(){
+        return accoutnNumber;
     }
 
-    public Account recordTransaction(String type, double amount) {
-        return null;
-    }
-
-    @Override
-    public void deposit(double amount) {
-    }
-
-    @Override
-    public boolean withdraw(double amount) {
-        return false;
-    }
-
-    @Override
-    public boolean transfer(double amount, Account target) {
-        return false;
-    }
-
-    public String getAccountId() {
-        return accountId;
-    }
-
-    public List<Transaction> getTransactionHistory() {
+    protected List<Transaction> getTransactionHistory() {
         return transactionHistory;
     }
 
-    public double getValue(){
+//    protected void setBalance(double balance) {
+//        this.balance = balance;
+//    }
+
+    public int deposit(){
+        return 0;
+    }
+
+    public int withdraw(){
+        return 0;
+    }
+
+    public int transfer(){
         return 0;
     }
 
