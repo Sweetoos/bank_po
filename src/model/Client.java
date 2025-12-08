@@ -18,7 +18,7 @@ public class Client implements Serializable {
     private boolean isUseMainAccOp;
 
     private final MainVariables mv;
-    public transient final UserInterface UI;
+    public transient UserInterface UI;
     private final Bank bank;
 
     public Client(ClientData cd, MainVariables mv, UserInterface UI, Bank bank) {
@@ -37,14 +37,9 @@ public class Client implements Serializable {
         this.mv = mv;
         this.UI = UI;
 
-        addAccount(); //Creates main account.
+        addAccount();
         setAsMain(0);
     }
-
-    // -- --
-
-
-    // -- --
 
     public double getAccBalance(int accountNumber) {
         return accounts.get(accountNumber).getBalance();
@@ -61,11 +56,6 @@ public class Client implements Serializable {
     public String getBalanceString() {
         return Double.toString(accounts.get(0).getBalance());
     }
-
-    // -- --
-
-
-    // -- --
 
     public void setAsMain(int accId) {
         this.mainAccountId = accId;
@@ -151,6 +141,14 @@ public class Client implements Serializable {
             i++;
         }
         return -1;
+    }
+
+    public void setUI(UserInterface ui) {
+        this.UI=ui;
+    }
+
+    public List<Account> getAccounts() {
+        return this.accounts;
     }
 
     // -- --

@@ -1,5 +1,7 @@
 package gui;
 
+import model.Client;
+
 import javax.swing.*;
 import java.awt.*;
 import javax.swing.text.AbstractDocument;
@@ -321,6 +323,10 @@ public class TransactionPanel extends JPanel {
 
     private boolean secondCheck(double amount) {
         return amount <= balance + overdraftLimit;
+    }
+
+    public void setCurrentClient(Client currentClient) {
+        //TODO: write this method
     }
 
     private static class DecimalDocumentFilter extends DocumentFilter {

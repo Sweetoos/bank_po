@@ -1,6 +1,7 @@
 package model;
 
 import java.io.*;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -10,31 +11,21 @@ public class Bank implements Serializable {
     private static final long serialVersionUID = 1L;
     private final MainVariables mv;
 
-    private transient final IOConsole IO;
-    private transient final UserInterface UI;
+    private transient IOConsole IO;
+    private transient UserInterface UI;
 
     public final String appVersion;
 
-    private transient final Checks ch;
+    private transient Checks ch;
 
     public Bank() {
-        this.appVersion = "2.1.20";
+        this.appVersion = "3.0.0";
 
         clients = new HashMap<>();
         accountList = new HashMap<>();
-
         mv = new MainVariables();
-
-        IO = IOConsole.start(this.appVersion);
-        UI = new UserInterface(appVersion, IO);
-
-        ch = new Checks();
-
-        doTasks();
     }
 
-
-    // -- working functions --
 
     public void doTasks() {
         ch.opOne = -1;
@@ -60,7 +51,7 @@ public class Bank implements Serializable {
         }
     }
 
-    private void optionTwo() { // Making operations on a user.
+    private void optionTwo() {
         ch.opTwo = -1;
         ch.opThree = -1;
         //ch.opFour = -1;
@@ -94,18 +85,15 @@ public class Bank implements Serializable {
 
                 break;
             case 5:
-                accId = client.addAccount();//komplenie do wymiany
+                accId = client.addAccount();
 
                 UI.addAcc(client.getAcc(accId));
                 break;
             case 6:
-                //Do uzupełnienia
                 break;
             case 7:
-                //Do uzupełnienia
                 break;
             default:
-                //Error
                 break;
         }
 
@@ -138,18 +126,17 @@ public class Bank implements Serializable {
                 System.err.println("Błąd: Odczytany obiekt nie jest instancją klasy model.Bank");
                 return null;
             }
-        } catch (IOException|ClassNotFoundException e) {
-            System.err.println("Wystąpił błąd podczas wczytywania z "+e.getMessage());
+        } catch (IOException | ClassNotFoundException e) {
+            System.err.println("Wystąpił błąd podczas wczytywania z " + e.getMessage());
             e.printStackTrace();
             return null;
         }
     }
 
 
-    // --
-    private int help1(int accId, Client client) { //Helping function for optionTwo.
+    private int help1(int accId, Client client) {
 
-        if (client.isUseMaOp()) { // isUseMainAccountOption
+        if (client.isUseMaOp()) {
             return accId;
         }
 
@@ -159,10 +146,6 @@ public class Bank implements Serializable {
 
         return accId;
     }
-    // --
-
-    // -- --
-
 
     public void addClient() {
         ClientData cd = new ClientData();
@@ -181,27 +164,17 @@ public class Bank implements Serializable {
         this.clients.put(mv.getLastClientId(), client);
     }
 
-    /* Function registers account number that was just created.
-     * Function gets clientId that represents to witch client this account is belonging, and
-     * puts lastAccountNumber from mv object (that carries main variables needed in project)
-     * with clientId.
-     */
     public void registerAcc(int clientId) {
         this.accountList.put(mv.getLastAccountNumber(), clientId);
     }
 
-
-    // -- --
-
     private void executeTransaction(TransactionData tx) {
 
         if (!tx.makeTransaction) {
-            return; //Wyrzucenie wyjątku braku przelewu.
+            return;
         }
 
-        //model.Transaction is returned to the original account when destination account is not found.
         if (!accountList.containsKey(tx.inAccNumber)) {
-
             tx.inAccNumber = tx.outAccNumber;
         }
 
@@ -211,10 +184,28 @@ public class Bank implements Serializable {
         client.executeTransaction(tx);
     }
 
-    // -- --
+    public void initializeTransientFields() {
+        this.IO=IOConsole.start(this.appVersion);
+        this.UI=new UserInterface(this.appVersion, this.IO);
+        this.ch=new Checks();
 
+        if(this.clients!=null)
+        {
+            for(Client client:this.clients.values())
+            {
+                client.setUI(this.UI);
+                if(client.getAccounts()!=null)
+                {
+                    for(Account account:client.getAccounts()){
+                        account.setUI(this.UI);
+                    }
+                }
+            }
+        }
+    }
 
-    // -- Internal Class --
+    public Collection<Object> getClients() {
+    }
 
     public class Checks implements Serializable {
 

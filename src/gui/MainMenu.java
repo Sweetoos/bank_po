@@ -1,51 +1,66 @@
 package gui;
 
+import model.Account;
+import model.Bank;
+import model.Client;
+import model.Transaction;
+
 import javax.swing.*;
 import javax.swing.border.LineBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.List;
 
 public class MainMenu extends JFrame {
-    Color color1 = new Color(255, 98, 0);
-    Color color4 = new Color(179, 101, 54);
-    Color color6 = new Color(128, 88, 64);
-    Color color9 = new Color(51, 45, 41);
-    Color color10 = new Color(51, 48, 46);
-    Color colorTableRow = new Color(61, 54, 50);
+    // Pola kolorów i komponentów (bez zmian)
+    private final Color color1 = new Color(255, 98, 0);
+    private final Color color6 = new Color(128, 88, 64);
+    private final Color color9 = new Color(51, 45, 41);
+    private final Color color10 = new Color(51, 48, 46);
+    private final Color colorTableRow = new Color(61, 54, 50);
 
-    String[] accounts = {"Admin", "Demo1", "Demo2", "Demo3"};
-    String[] accountsMoney = {"3039.76 PLN", "200.13 PLN", "0.00 PLN", "1.20 PLN"};
-    int accountNumber = 0;
+    // Główne komponenty i layout
+    private final JPanel menuPanel = new JPanel();
+    private final CardLayout cardLayout = new CardLayout();
+    private final JPanel mainMenuView = new JPanel();
 
-    JPanel menuPanel = new JPanel();
-    CardLayout cardLayout = new CardLayout();
+    // Pod-panele
+    private final TransactionPanel transactionPanel;
+    private final ManageAccountsPanel manageAccountsPanel;
 
-    JPanel mainMenuView = new JPanel();
-    TransactionPanel transactionPanel;
-    ManageAccountsPanel manageAccountsPanel;
+    // Komponenty widoku głównego
+    private final JPanel accountPanel = new JPanel();
+    private final JPanel accountInfoPanel = new JPanel();
+    private final JPanel transactionHistoryPanel = new JPanel();
+    private final JPanel optionsPanel = new JPanel();
+    private final JLabel currentAccountLabel = new JLabel();
+    private final JLabel moneyAmountLabel = new JLabel();
+    private final JButton nextButton = new JButton(">");
+    private final JButton backButton = new JButton("<");
+    private final JButton logoutButton = new JButton("Logout");
+    private final JButton transactionOptionButton = new JButton("Transaction");
+    private final JButton manageAccountsButton = new JButton("Manage Accounts");
 
-    JPanel accountPanel = new JPanel();
-    JPanel accountInfoPanel = new JPanel();
-    JPanel transactionHistoryPanel = new JPanel();
-    JPanel optionsPanel = new JPanel();
-
-    JLabel currentAccountLabel = new JLabel();
-    JLabel moneyAmountLabel = new JLabel();
-
-    JButton nextButton = new JButton(">");
-    JButton backButton = new JButton("<");
-    JButton logoutButton = new JButton("Logout");
-
-    JButton transactionOptionButton = new JButton("model.Transaction");
-    JButton manageAccountsButton = new JButton("Manage Accounts");
-
+    // Tabela transakcji
     private DefaultTableModel transactionModel;
     private JTable transactionTable;
-    private java.util.List<Transaction> transactions;
 
-    public MainMenu() {
+    // Dane z modelu
+    private final Bank bank;
+    private Client currentClient;
+    private List<Client> clientList;
+    private int currentClientIndex = 0;
+
+    public MainMenu(Bank bank) {
         super("Main Menu");
+        this.bank = bank;
+
+        // Inicjalizacja listy klientów z modelu
+        this.clientList = new ArrayList<>(bank.getClients().values());
+        if (!clientList.isEmpty()) {
+            this.currentClient = clientList.get(0);
+        }
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1600, 900);
@@ -53,13 +68,12 @@ public class MainMenu extends JFrame {
 
         menuPanel.setLayout(cardLayout);
 
-        transactionPanel = new TransactionPanel(menuPanel, cardLayout);
-        manageAccountsPanel = new ManageAccountsPanel(menuPanel, cardLayout);
-
-        transactions = new ArrayList<>();
-        initDemoTransactions();
+        // Przekazywanie danych z modelu do pod-paneli
+        transactionPanel = new TransactionPanel(menuPanel, cardLayout, bank, currentClient);
+        manageAccountsPanel = new ManageAccountsPanel(menuPanel, cardLayout, bank);
 
         buildMainMenuView();
+        updateAccountView();
 
         menuPanel.add(mainMenuView, "MAIN");
         menuPanel.add(transactionPanel, "TRANSACTION");
@@ -69,11 +83,17 @@ public class MainMenu extends JFrame {
         setVisible(true);
     }
 
-    private void initDemoTransactions() {
-        transactions.add(new Transaction(2, "Demo1", -50.0, "Withdraw"));
-        transactions.add(new Transaction(1, "Admin", +100.0, "model.Deposit"));
-        transactions.add(new Transaction(3, "Demo2", -20.0, "Transfer"));
-        transactions.add(new Transaction(1, "Admin", +20.0, "Transfer"));
+    // Aktualizuje widok informacji o kliencie i jego transakcjach
+    private void updateAccountView() {
+        if (currentClient != null) {
+            currentAccountLabel.setText(currentClient.clientName);
+            moneyAmountLabel.setText(String.format("%.2f PLN", currentClient.getBalance()));
+            transactionPanel.setCurrentClient(currentClient); // Aktualizuj klienta w panelu transakcji
+        } else {
+            currentAccountLabel.setText("No clients found");
+            moneyAmountLabel.setText("0.00 PLN");
+        }
+        refreshTransactionTable();
     }
 
     private void buildMainMenuView() {
@@ -92,12 +112,10 @@ public class MainMenu extends JFrame {
         accountInfoPanel.setBackground(color9);
         accountInfoPanel.setPreferredSize(new Dimension(accountInfoWidth, 250));
 
-        currentAccountLabel.setText(accounts[accountNumber]);
         currentAccountLabel.setForeground(color1);
         currentAccountLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         currentAccountLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
 
-        moneyAmountLabel.setText(accountsMoney[accountNumber]);
         moneyAmountLabel.setForeground(color1);
         moneyAmountLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         moneyAmountLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
@@ -118,50 +136,13 @@ public class MainMenu extends JFrame {
         transactionHistoryPanel.setBackground(color10);
         transactionHistoryPanel.setPreferredSize(new Dimension(panelWidth + 180, 750));
 
-        String[] columns = {"ID", "model.Account", "Amount", "Type"};
-
+        String[] columns = {"ID", "Type", "Amount", "Balance After"};
         transactionModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) { return false; }
         };
-
-        transactionTable = new JTable(transactionModel) {
-            @Override
-            public Component prepareRenderer(javax.swing.table.TableCellRenderer renderer, int row, int column) {
-                Component c = super.prepareRenderer(renderer, row, column);
-                c.setBackground(colorTableRow);
-                c.setForeground(Color.WHITE);
-                if (c instanceof JComponent jc) jc.setBorder(BorderFactory.createEmptyBorder());
-                return c;
-            }
-        };
-
-        transactionTable.setFillsViewportHeight(true);
-        transactionTable.getTableHeader().setReorderingAllowed(false);
-
-        transactionTable.setBackground(colorTableRow);
-        transactionTable.setForeground(Color.WHITE);
-        transactionTable.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        transactionTable.setRowHeight(36);
-
-        transactionTable.getTableHeader().setBackground(color6);
-        transactionTable.getTableHeader().setForeground(color1);
-        transactionTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 16));
-
-        transactionTable.setSelectionBackground(colorTableRow);
-        transactionTable.setSelectionForeground(Color.WHITE);
-
-        transactionTable.setGridColor(color10);
-        transactionTable.setShowGrid(true);
-        transactionTable.setFocusable(false);
-        transactionTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-
-        int[] columnWidths = {50, 150, 150, 150};
-        for (int i = 0; i < columnWidths.length; i++) {
-            transactionTable.getColumnModel().getColumn(i).setPreferredWidth(columnWidths[i]);
-        }
-
-        refreshTransactionTable();
+        transactionTable = new JTable(transactionModel);
+        setupTransactionTableStyle();
 
         JScrollPane scrollPane = new JScrollPane(transactionTable);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
@@ -180,19 +161,13 @@ public class MainMenu extends JFrame {
         optionsPanel.add(manageAccountsButton);
         optionsPanel.add(logoutButton);
 
-        c.gridx = 1;
-        c.gridy = 1;
-        c.insets = new Insets(20,150,20,20);
+        c.gridx = 1; c.gridy = 1; c.insets = new Insets(20, 150, 20, 20);
         mainMenuView.add(accountPanel, c);
 
-        c.gridx = 2;
-        c.gridy = 1;
-        c.gridheight = 3;
-        c.fill = GridBagConstraints.BOTH;
+        c.gridx = 2; c.gridy = 1; c.gridheight = 3; c.fill = GridBagConstraints.BOTH;
         mainMenuView.add(transactionHistoryPanel, c);
 
-        c.gridx = 1;
-        c.gridy = 2;
+        c.gridx = 1; c.gridy = 2; c.gridheight = 1; c.fill = GridBagConstraints.NONE;
         mainMenuView.add(optionsPanel, c);
 
         backButton.addActionListener(e -> changeAccount(-1));
@@ -205,17 +180,66 @@ public class MainMenu extends JFrame {
             int confirm = JOptionPane.showConfirmDialog(this, "Are you sure you want to logout?", "Logout", JOptionPane.YES_NO_OPTION);
             if (confirm == JOptionPane.YES_OPTION) {
                 dispose();
-                new LoginPage();
+                new LoginPage(bank);
             }
         });
+    }
+
+    private void changeAccount(int direction) {
+        if (clientList == null || clientList.isEmpty()) {
+            return;
+        }
+        currentClientIndex = (currentClientIndex + direction + clientList.size()) % clientList.size();
+        currentClient = clientList.get(currentClientIndex);
+        updateAccountView();
+    }
+
+    private void refreshTransactionTable() {
+        transactionModel.setRowCount(0);
+        if (currentClient != null) {
+            Account mainAccount = currentClient.getAcc(currentClient.getMainAccountId());
+            if (mainAccount != null && mainAccount.getTransactionHistory() != null) {
+                for (Transaction t : mainAccount.getTransactionHistory()) {
+                    String amountStr = String.format("%s%.2f PLN", (t.amount >= 0 ? "+" : ""), t.amount);
+                    transactionModel.addRow(new Object[]{
+                            t.transactionId,
+                            t.transactionType,
+                            amountStr,
+                            String.format("%.2f PLN", t.balanceAfter)
+                    });
+                }
+            }
+        }
+    }
+
+    private void setupTransactionTableStyle() {
+        transactionTable.setFillsViewportHeight(true);
+        transactionTable.getTableHeader().setReorderingAllowed(false);
+        transactionTable.setBackground(colorTableRow);
+        transactionTable.setForeground(Color.WHITE);
+        transactionTable.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        transactionTable.setRowHeight(36);
+        transactionTable.getTableHeader().setBackground(color6);
+        transactionTable.getTableHeader().setForeground(color1);
+        transactionTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 16));
+        transactionTable.setSelectionBackground(colorTableRow);
+        transactionTable.setSelectionForeground(Color.WHITE);
+        transactionTable.setGridColor(color10);
+        transactionTable.setShowGrid(true);
+        transactionTable.setFocusable(false);
+        transactionTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+
+        int[] columnWidths = {50, 150, 150, 150};
+        for (int i = 0; i < columnWidths.length; i++) {
+            transactionTable.getColumnModel().getColumn(i).setPreferredWidth(columnWidths[i]);
+        }
     }
 
     private void styleArrowButton(JButton btn) {
         Color normalText = color1;
         Color pressedText = color1.darker();
-
         btn.setFont(new Font("Segoe UI", Font.BOLD, 44));
-        btn.setBackground(new Color(0,0,0,0)); // transparent
+        btn.setBackground(new Color(0, 0, 0, 0));
         btn.setForeground(normalText);
         btn.setFocusPainted(false);
         btn.setBorder(BorderFactory.createEmptyBorder());
@@ -224,7 +248,6 @@ public class MainMenu extends JFrame {
         btn.setOpaque(false);
         btn.setFocusable(false);
         btn.setContentAreaFilled(false);
-
         btn.getModel().addChangeListener(e -> {
             if (btn.getModel().isPressed()) {
                 btn.setForeground(pressedText);
@@ -237,8 +260,7 @@ public class MainMenu extends JFrame {
     private void styleMenuButton(JButton btn) {
         Color normalText = color1;
         Color pressedText = color1.darker();
-
-        btn.setBackground(new Color(0,0,0,0)); // transparent
+        btn.setBackground(new Color(0, 0, 0, 0));
         btn.setForeground(normalText);
         btn.setBorder(new LineBorder(normalText, 4, true));
         btn.setPreferredSize(new Dimension(220, 55));
@@ -248,7 +270,6 @@ public class MainMenu extends JFrame {
         btn.setFocusable(false);
         btn.setContentAreaFilled(false);
         btn.setOpaque(false);
-
         btn.getModel().addChangeListener(e -> {
             if (btn.getModel().isPressed()) {
                 btn.setForeground(pressedText);
@@ -258,36 +279,5 @@ public class MainMenu extends JFrame {
                 btn.setBorder(new LineBorder(normalText, 4, true));
             }
         });
-    }
-
-    private void changeAccount(int direction) {
-        accountNumber = (accountNumber + direction + accounts.length) % accounts.length;
-        currentAccountLabel.setText(accounts[accountNumber]);
-        moneyAmountLabel.setText(accountsMoney[accountNumber]);
-        refreshTransactionTable();
-    }
-
-    private void refreshTransactionTable() {
-        transactionModel.setRowCount(0);
-        for (Transaction t : transactions) {
-            if (t.accountId == accountNumber + 1) {
-                String amountStr = (t.amount >= 0 ? "+" : "") + String.format("%.2f PLN", t.amount);
-                transactionModel.addRow(new Object[]{t.accountId, t.accountName, amountStr, t.type});
-            }
-        }
-    }
-
-    private static class Transaction {
-        int accountId;
-        String accountName;
-        double amount;
-        String type;
-
-        public Transaction(int accountId, String accountName, double amount, String type) {
-            this.accountId = accountId;
-            this.accountName = accountName;
-            this.amount = amount;
-            this.type = type;
-        }
     }
 }

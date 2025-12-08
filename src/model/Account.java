@@ -37,7 +37,7 @@ public abstract class Account implements Transactable, Serializable {
         return accountNumber;
     }
 
-    protected List<Transaction> getTransactionHistory() {
+    public List<Transaction> getTransactionHistory() {
         return transactionHistory;
     }
 
@@ -67,4 +67,6 @@ public abstract class Account implements Transactable, Serializable {
         return;
     }
 
+    public void setUI(UserInterface ui) {
+    }
 }
