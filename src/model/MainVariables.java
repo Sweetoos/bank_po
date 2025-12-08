@@ -1,4 +1,8 @@
-public class MainVariables {
+package model;
+
+import java.io.Serializable;
+
+public class MainVariables implements Serializable {
 
     private int lastAccountNumber;
     private int lastClientId;

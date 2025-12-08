@@ -1,3 +1,5 @@
+package model;
+
 public class ClientData {
     public int    clientId;
     public String clientName;

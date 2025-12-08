@@ -1,3 +1,5 @@
+package model;
+
 public class DepositAccData {
     public int    depositId;
     public String depositName;

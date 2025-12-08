@@ -1,3 +1,5 @@
+package model;
+
 public class TransactionData {
 
     public final int     transactionId;

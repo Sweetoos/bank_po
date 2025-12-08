@@ -1,3 +1,5 @@
+package model;
+
 import java.util.Scanner;
 
 public final class IOConsole {
@@ -6,7 +8,7 @@ public final class IOConsole {
 
     private final Scanner in;
 
-    public        boolean endPr;
+    public boolean endPr;
 
     private IOConsole(String appVersion) {
         this.appVersion = appVersion;
@@ -14,7 +16,7 @@ public final class IOConsole {
         this.endPr = false;
     }
 
-    public static IOConsole start(String appVersion){
+    public static IOConsole start(String appVersion) {
         IOConsole UI = new IOConsole(appVersion);
 
         UI.greeting();
@@ -22,38 +24,39 @@ public final class IOConsole {
         return UI;
     }
 
-    public void greeting(){
+    public void greeting() {
         System.out.println("Witaj");
-        System.out.println("Jest to program symulujący Bank");
+        System.out.println("Jest to program symulujący model.Bank");
         System.out.println("Wersja " + this.appVersion + "\n");
 
     }
 
-    public void print(String message){
+    public void print(String message) {
 
         System.out.print(message);
     }
 
-    public void println(String message){
+    public void println(String message) {
 
         System.out.println(message);
     }
 
-    public String read(){
+    public String read() {
         String line = in.nextLine();
         exitProgram(line);
 
         return line;
     }
 
-    public String printRead(String message){
+    public String printRead(String message) {
         System.out.print(message);
         String line = in.nextLine();
 
         exitProgram(line);
         return line;
     }
-    public int printReadInt(String message){
+
+    public int printReadInt(String message) {
         System.out.print(message);
         String line = in.nextLine();
 
@@ -62,24 +65,23 @@ public final class IOConsole {
     }
 
 
-
-    private void exitProgram(String line){
-        if(line.equals("exit")){
+    private void exitProgram(String line) {
+        if (line.equals("exit")) {
             System.exit(0);
-        }else if(line.equals("")){
+        } else if (line.equals("")) {
             System.exit(0);
         }
         endProgram(line);
     }
 
-    private void endProgram(String line){
-        if(line.equals("end")){
+    private void endProgram(String line) {
+        if (line.equals("end")) {
             this.endPr = true;
         }
     }
 
-    public boolean isEndPr(){
-        if(this.endPr){
+    public boolean isEndPr() {
+        if (this.endPr) {
             this.endPr = false;
             return true;
         }

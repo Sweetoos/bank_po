@@ -1,6 +1,9 @@
+package model;
+
+import java.io.Serializable;
 import java.time.LocalDate;
 
-public class Deposit {
+public class Deposit implements Serializable {
 
     public  final int depositId;
     public  final String depositName;

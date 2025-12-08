@@ -1,17 +1,19 @@
-public class CheckingAccount extends Account{
+package model;
 
-    CheckingAccount(int accoutnNumber, MainVariables mv, UserInterface UI) {
-        super(accoutnNumber, "CheckingAccount", mv, UI);
+public class CheckingAccount extends Account {
+
+    CheckingAccount(int accountNumber, MainVariables mv, UserInterface UI) {
+        super(accountNumber, "model.CheckingAccount", mv, UI);
     }
 
     @Override
     public int deposit(){
         TransactionData dd = new TransactionData(mv.newTransactionId(), balance);
         dd.outAccNumber = (-3); //Means this transaction is coming from nowhere.
-        dd.inAccNumber = accoutnNumber;
-        dd.setTransactionType("Deposit");
+        dd.inAccNumber = accountNumber;
+        dd.setTransactionType("model.Deposit");
 
-        dd = UI.deposit(dd); //Getting DepositData from the user. UI Class
+        dd = UI.deposit(dd); //Getting model.DepositData from the user. UI Class
 
         if(dd.makeTransaction) {
             Transaction internal = new Transaction(dd);
@@ -29,7 +31,7 @@ public class CheckingAccount extends Account{
 
         TransactionData wd = new TransactionData(mv.newTransactionId(), balance);
 
-        wd.outAccNumber = accoutnNumber;
+        wd.outAccNumber = accountNumber;
         wd.inAccNumber = (-4); //Means this transaction is going nowhere.
         wd.setTransactionType("Withdraw");
 
@@ -47,7 +49,7 @@ public class CheckingAccount extends Account{
     @Override
     public TransactionData transfer(){
         TransactionData td = new TransactionData(mv.newTransactionId(), balance);
-        td.outAccNumber = accoutnNumber;
+        td.outAccNumber = accountNumber;
         td.inAccNumber = (-5); //Means this transaction is transfered, but this parameter needs to be set.
         td.setTransactionType("Transfer");
         td.overdraftLimit = 0; //To be set by ...
@@ -71,7 +73,7 @@ public class CheckingAccount extends Account{
     }
 
     @Override
-    public void reciveTransfer(TransactionData tr){
+    public void receiveTransfer(TransactionData tr){
 
         tr.balance = balance;
         IO.println("balance: " + Double.toString(balance));

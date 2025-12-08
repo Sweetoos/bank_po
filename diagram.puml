@@ -1,0 +1,141 @@
+@startuml
+!theme plain
+left to right direction
+skinparam classAttributeIconSize 0
+
+interface Transactable {
+  + {abstract} deposit() : int
+  + {abstract} withdraw() : int
+  + {abstract} transfer() : TransactionData
+}
+
+abstract class Account {
+  + final accountNumber: int
+  + final accountType: String
+  # balance: double
+  # transactionHistory: List<Transaction>
+  # mv: MainVariables
+  # UI: UserInterface
+  # getBalance(): double
+  + getAccDataString(): String
+  + receiveTransfer(tr: TransactionData): void
+}
+
+class Bank {
+  - clients: Map<Integer, Client>
+  - accountList: Map<Integer, Integer>
+  - mv: MainVariables
+  - IO: IOConsole
+  - UI: UserInterface
+  + appVersion: String
+  + doTasks(): void
+  + addClient(): void
+  + registerAcc(clientId: int): void
+  - executeTransaction(tx: TransactionData): void
+}
+
+class Client {
+  + final clientId: int
+  + clientName: String
+  + clientAddress: String
+  - accounts: List<Account>
+  - deposits: List<Deposit>
+  - bank: Bank
+  - mv: MainVariables
+  + UI: UserInterface
+  + addAccount(): int
+  + getAcc(accId: int): Account
+  + executeTransaction(tx: TransactionData): void
+}
+
+class CheckingAccount {
+  + deposit(): int
+  + withdraw(): int
+  + transfer(): TransactionData
+  + receiveTransfer(tr: TransactionData): void
+}
+
+class SavingsAccount {
+  - annualInterestRate: double
+  + getAnnualInterestRate(): double
+}
+
+class Transaction {
+  + final transactionId: int
+  + final amount: double
+  + final transactionType: String
+}
+
+class TransactionData {
+  + final transactionId: int
+  + amount: double
+  + makeTransaction: boolean
+  + outAccNumber: int
+  + inAccNumber: int
+  + setBalanceAfterDeposit(): void
+  + setBalanceAfterWithdraw(): void
+}
+
+class UserInterface {
+  + final appVersion: String
+  + final IO: IOConsole
+  + firstLayer(): int
+  + addClient(cd: ClientData): ClientData
+  + deposit(dd: TransactionData): TransactionData
+  + withdraw(wd: TransactionData): TransactionData
+  + transfer(td: TransactionData): TransactionData
+}
+
+class IOConsole {
+  - in: Scanner
+  + print(message: String): void
+  + println(message: String): void
+  + read(): String
+  + printReadInt(message: String): int
+}
+
+class MainVariables {
+  - lastAccountNumber: int
+  - lastClientId: int
+  - lastTransactionId: int
+  + newAccountNumber(): int
+  + newClientId(): int
+  + newTransactionId(): int
+}
+
+class ClientData {
+  + clientId: int
+  + clientName: String
+  + clientAddress: String
+}
+
+class Deposit {
+    + final depositId: int
+    + final amount: double
+}
+
+
+Account <|-- CheckingAccount
+Account <|-- SavingsAccount
+
+Transactable <|.. Account
+
+Bank "1" *-- "1" MainVariables
+Bank "1" *-- "1" UserInterface
+UserInterface "1" *-- "1" IOConsole
+Bank "1" o-- "*" Client
+Client "1" o-- "1..*" Account
+Client "1" o-- "*" Deposit
+Account "1" o-- "*" Transaction
+
+Client "*" -- "1" Bank
+
+Bank ..> ClientData : uses to create
+Bank ..> TransactionData
+Client ..> TransactionData
+Account ..> TransactionData
+Transaction ..> TransactionData : created from
+UserInterface ..> ClientData
+UserInterface ..> TransactionData
+
+@enduml

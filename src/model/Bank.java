@@ -1,20 +1,23 @@
+package model;
+
+import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 
-public class Bank {
-    private final Map<Integer, Client>  clients;
+public class Bank implements Serializable {
+    private final Map<Integer, Client> clients;
     private final Map<Integer, Integer> accountList; //First int is accNumber, second int is client ID.
-
+    private static final long serialVersionUID = 1L;
     private final MainVariables mv;
 
-    private final IOConsole     IO;
-    private final UserInterface UI;
+    private transient final IOConsole IO;
+    private transient final UserInterface UI;
 
-    public  final String appVersion;
+    public final String appVersion;
 
-    private final Checks ch;
+    private transient final Checks ch;
 
-    Bank(){
+    public Bank() {
         this.appVersion = "2.1.20";
 
         clients = new HashMap<>();
@@ -33,31 +36,31 @@ public class Bank {
 
     // -- working functions --
 
-    public void doTasks(){
+    public void doTasks() {
         ch.opOne = -1;
 
-        while(true){
+        while (true) {
             ch.opOne = UI.firstLayer();
 
-            if(ch.opOne == 1){
+            if (ch.opOne == 1) {
                 addClient();
 
-            } else if(ch.opOne == 2){
+            } else if (ch.opOne == 2) {
 
                 optionTwo();
 
-            } else if(ch.opOne > 2 || ch.opOne < 0){
+            } else if (ch.opOne > 2 || ch.opOne < 0) {
                 break;
             }
 
-            if(IO.isEndPr()){
+            if (IO.isEndPr()) {
                 break;
             }
             ch.opOne = -1;
         }
     }
 
-    private void optionTwo(){ // Making operations on a user.
+    private void optionTwo() { // Making operations on a user.
         ch.opTwo = -1;
         ch.opThree = -1;
         //ch.opFour = -1;
@@ -70,7 +73,7 @@ public class Bank {
         ch.opThree = UI.chooseOptionTwo(client);
 
         int accId = client.getMainAccountId();
-        switch(ch.opThree){
+        switch (ch.opThree) {
             case 1:
                 accId = help1(accId, client);
 
@@ -84,7 +87,7 @@ public class Bank {
             case 3:
                 accId = help1(accId, client);
 
-                executeTransaction( client.getAcc(accId).transfer() );
+                executeTransaction(client.getAcc(accId).transfer());
                 break;
             case 4:
 
@@ -109,16 +112,49 @@ public class Bank {
 
     }
 
+    public void saveState(String filename) {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(filename))) {
+            oos.writeObject(this);
+            System.out.println("Stan banku został pomyślnie zapisany do " + filename);
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static Bank loadState(String filename) throws FileNotFoundException {
+        File file = new File(filename);
+        if (!file.exists()) {
+            System.out.println("Plik zapisu nie istnieje. Aplikacja zostanie uruchomiona z nowym stanem");
+            return null;
+        }
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(filename))) {
+            Object obj = ois.readObject();
+            if (obj instanceof Bank) {
+                System.out.println("Stan banku został pomyślnie wczytany z " + filename);
+                return (Bank) obj;
+            } else {
+                System.err.println("Błąd: Odczytany obiekt nie jest instancją klasy model.Bank");
+                return null;
+            }
+        } catch (IOException|ClassNotFoundException e) {
+            System.err.println("Wystąpił błąd podczas wczytywania z "+e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
+
 
     // --
-    private int help1(int accId, Client client){ //Helping function for optionTwo.
+    private int help1(int accId, Client client) { //Helping function for optionTwo.
 
-        if(client.isUseMaOp()){ // isUseMainAccountOption
+        if (client.isUseMaOp()) { // isUseMainAccountOption
             return accId;
         }
 
-        if(UI.fromMainAcc() != 1){
-            return UI.showAccList( client.createAccList() );
+        if (UI.fromMainAcc() != 1) {
+            return UI.showAccList(client.createAccList());
         }
 
         return accId;
@@ -128,11 +164,7 @@ public class Bank {
     // -- --
 
 
-
-
-
-
-    public void addClient(){
+    public void addClient() {
         ClientData cd = new ClientData();
         cd.clientId = mv.newClientId();
 
@@ -154,21 +186,21 @@ public class Bank {
      * puts lastAccountNumber from mv object (that carries main variables needed in project)
      * with clientId.
      */
-    public void registerAcc(int clientId){
+    public void registerAcc(int clientId) {
         this.accountList.put(mv.getLastAccountNumber(), clientId);
     }
 
 
     // -- --
 
-    private void executeTransaction(TransactionData tx){
+    private void executeTransaction(TransactionData tx) {
 
-        if(!tx.makeTransaction){
+        if (!tx.makeTransaction) {
             return; //Wyrzucenie wyjątku braku przelewu.
         }
 
-        //Transaction is returned to the original account when destination account is not found.
-        if(!accountList.containsKey(tx.inAccNumber)){
+        //model.Transaction is returned to the original account when destination account is not found.
+        if (!accountList.containsKey(tx.inAccNumber)) {
 
             tx.inAccNumber = tx.outAccNumber;
         }
@@ -182,21 +214,20 @@ public class Bank {
     // -- --
 
 
-
     // -- Internal Class --
 
-    public class Checks{
+    public class Checks implements Serializable {
 
         public int opOne;
         public int opTwo;
         public int opThree;
         public int opFour;
 
-        Checks(){
-            opOne   = 0;
-            opTwo   = 0;
+        Checks() {
+            opOne = 0;
+            opTwo = 0;
             opThree = 0;
-            opFour  = 0;
+            opFour = 0;
         }
 
     }

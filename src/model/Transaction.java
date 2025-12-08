@@ -1,4 +1,8 @@
-public class Transaction {
+package model;
+
+import java.io.Serializable;
+
+public class Transaction implements Serializable {
 
     public final int    transactionId;
 

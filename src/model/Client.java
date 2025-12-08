@@ -1,27 +1,30 @@
+package model;
+
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Client {
+public class Client implements Serializable {
 
-    public  final int           clientId;
+    public final int clientId;
 
-    public        String        clientName;
-    public        String        clientAddress;
+    public String clientName;
+    public String clientAddress;
 
     private final List<Account> accounts;
     private final List<Deposit> deposits;
 
-    private        int          mainAccountId;
-    private        boolean      isUseMainAccOp;
+    private int mainAccountId;
+    private boolean isUseMainAccOp;
 
     private final MainVariables mv;
-    public  final UserInterface UI;
-    private final Bank          bank;
+    public transient final UserInterface UI;
+    private final Bank bank;
 
     public Client(ClientData cd, MainVariables mv, UserInterface UI, Bank bank) {
         this.clientId = cd.clientId;
 
-        this.clientName    = cd.clientName;
+        this.clientName = cd.clientName;
         this.clientAddress = cd.clientAddress;
 
         this.accounts = new ArrayList<>();
@@ -31,8 +34,8 @@ public class Client {
         this.isUseMainAccOp = true;
 
         this.bank = bank;
-        this.mv   = mv;
-        this.UI   = UI;
+        this.mv = mv;
+        this.UI = UI;
 
         addAccount(); //Creates main account.
         setAsMain(0);
@@ -41,42 +44,50 @@ public class Client {
     // -- --
 
 
-
     // -- --
 
-    public double getAccBalance      (int accountNumber){
-        return                 accounts.get(accountNumber).getBalance();
+    public double getAccBalance(int accountNumber) {
+        return accounts.get(accountNumber).getBalance();
     }
-    public String getAccBalanceString(int accountNumber){
+
+    public String getAccBalanceString(int accountNumber) {
         return Double.toString(accounts.get(accountNumber).getBalance());
     }
 
-    public double getBalance()      { return                 accounts.get(0).getBalance() ; }
-    public String getBalanceString(){ return Double.toString(accounts.get(0).getBalance()); }
+    public double getBalance() {
+        return accounts.get(0).getBalance();
+    }
+
+    public String getBalanceString() {
+        return Double.toString(accounts.get(0).getBalance());
+    }
 
     // -- --
 
 
-
     // -- --
 
-    public void setAsMain(int accId){
+    public void setAsMain(int accId) {
         this.mainAccountId = accId;
     }
 
-    public int getMainAccountId(){ return mainAccountId; }
+    public int getMainAccountId() {
+        return mainAccountId;
+    }
 
-    public void useMainAccOp(boolean use){ // useMainAccountOption
-        if(use){
+    public void useMainAccOp(boolean use) { // useMainAccountOption
+        if (use) {
             this.isUseMainAccOp = true;
         } else {
             this.isUseMainAccOp = false;
         }
     }
-    public boolean isUseMaOp(){ return this.isUseMainAccOp; }
+
+    public boolean isUseMaOp() {
+        return this.isUseMainAccOp;
+    }
 
     // -- --
-
 
 
     // -- --
@@ -94,11 +105,11 @@ public class Client {
         return accounts.size() - 1;
     }
 
-    public String createAccList(){
+    public String createAccList() {
         String accList = "";
 
         int cnt = 0;
-        for(Account account : this.accounts){
+        for (Account account : this.accounts) {
             accList += "      ID Konta: " + Integer.toString(cnt) + "\n" + account.getAccDataString();
 
             cnt++;
@@ -108,31 +119,33 @@ public class Client {
         return accList;
     }
 
-    public Account getAcc(int accId){
+    public Account getAcc(int accId) {
         return accounts.get(accId); //Warto dodać zabezpieczenie przed wyjściem poza zakres!
     }
 
     // -- --
 
 
-
     // -- --
 
     // Wyjątek! : dodać wykorzystaniw sprawdzenia czy konto tx.inAccNumber jest w kontach tego klienta.
-    public void executeTransaction(TransactionData tx){
+    public void executeTransaction(TransactionData tx) {
         int accId = searchAccount(tx.inAccNumber);
 
-        if(accId == -1){ return; } // <- TU
+        if (accId == -1) {
+            return;
+        } // <- TU
 
-        accounts.get(accId).reciveTransfer(tx);
+        accounts.get(accId).receiveTransfer(tx);
 
 
     }
-    private int searchAccount(int inAccNumber){
+
+    private int searchAccount(int inAccNumber) {
 
         int i = 0;
-        for(Account acc : accounts){
-            if(acc.accoutnNumber == inAccNumber){
+        for (Account acc : accounts) {
+            if (acc.accountNumber == inAccNumber) {
                 return i;
             }
             i++;
