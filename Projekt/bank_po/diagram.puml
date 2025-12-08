@@ -1,0 +1,120 @@
+@startuml
+
+' --- INTERFEJSY ---
+
+interface Transactable {
+    +deposit(amount: double)
+    +withdraw(amount: double): boolean
+    +transfer(targetAccount: Account, amount: double): boolean
+}
+
+interface Asset {
+    +getValue(): double
+}
+
+
+' --- KLASY GŁÓWNE ---
+
+class Bank {
+    -clients: Map<String, Client>
+    -fileManager: FileManager ' << Pole dla klasy wewnętrznej
+    +addClient(client: Client)
+    +getClient(id: String): Client
+    +saveDataToFile(filePath: String) ' << Nowa metoda publiczna
+    +loadDataFromFile(filePath: String) ' << Nowa metoda publiczna
+}
+
+' << NOWA KLASA WEWNĘTRZNA >>
+' Zwróć uwagę, że jest zdefiniowana jako osobna klasa na diagramie,
+' a jej powiązanie z Bankiem jest pokazane przez specjalną relację.
+class FileManager {
+    +saveData(path: String)
+    +loadData(path: String)
+}
+
+class Client {
+    -clientId: String
+    -name: String
+    -address: String
+    -accounts: List<Account>
+    -deposits: List<Deposit>
+    +addAccount(account: Account)
+    +addDeposit(deposit: Deposit)
+    +getAssets(): List<Asset>
+}
+
+
+' --- HIERARCHIA KONT ---
+
+abstract class Account {
+    #accountId: String
+    #balance: double
+    #transactionHistory: List<Transaction>
+    +getBalance(): double
+}
+
+class CheckingAccount {
+    -overdraftLimit: double
+    +withdraw(amount: double): boolean
+}
+
+class SavingsAccount {
+    -interestRate: double
+    +addInterest()
+    +withdraw(amount: double): boolean
+}
+
+
+' --- HIERARCHIA LOKAT ---
+
+class Deposit {
+    -depositId: int
+    -amount: double
+    -openingDate: LocalDate
+    -closingDate: LocalDate
+}
+
+class DepositType {
+    -name: String
+    -interestRate: double
+    -durationInMonths: int
+}
+
+
+' --- INNE KLASY ---
+
+class Transaction {
+    -transactionId: String
+    -type: String
+    -amount: double
+}
+
+class BankException
+class InsufficientFundsException
+class ClientNotFoundException
+
+
+' --- RELACJE ---
+
+' Implementacja interfejsów
+Transactable <|.. Account
+Asset <|.. Account
+Asset <|.. Deposit
+
+' Dziedziczenie
+Account <|-- CheckingAccount
+Account <|-- SavingsAccount
+BankException <|-- InsufficientFundsException
+BankException <|-- ClientNotFoundException
+
+' Asocjacje (powiązania)
+Bank "1" -- "*" Client : manages >
+Client "1" -- "*" Account : owns >
+Client "1" -- "*" Deposit : holds >
+Account "1" -- "*" Transaction : records >
+Deposit "*" -- "1" DepositType : is of type >
+
+' << NOWA RELACJA ZAGNIEŻDŻENIA (KLASA WEWNĘTRZNA) >>
+Bank +-- FileManager
+
+@enduml
