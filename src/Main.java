@@ -5,33 +5,31 @@ import javax.swing.*;
 import java.io.FileNotFoundException;
 
 public class Main {
-    private static final String SAVE_FILE = "bank_data.txt";
+    private static final String SAVE_FILE = "bank_data.ser";
 
-    public static void main(String[] args) throws FileNotFoundException {
+    public static void main(String[] args) {
         Bank bank;
-
-        try{
-            bank=Bank.loadState(SAVE_FILE);
+        try {
+            bank = Bank.loadState(SAVE_FILE);
         } catch (FileNotFoundException e) {
-            bank=null;
+            bank = null;
         }
 
         if (bank == null) {
-            System.out.println("Tworzenie nowej instancji banku.");
+            System.out.println("Save file not found or corrupted. Creating a new bank instance.");
             bank = new Bank();
         } else {
-            System.out.println("Bank wczytany. Witaj ponownie!");
-            bank.initializeTransientFields();
+            System.out.println("Bank state loaded successfully. Welcome back!");
         }
 
-        final Bank finalBank=bank;
+        final Bank finalBank = bank;
 
-        SwingUtilities.invokeLater(()->{
+        SwingUtilities.invokeLater(() -> {
             new LoginPage(finalBank);
         });
 
-        Runtime.getRuntime().addShutdownHook(new Thread(()->{
-            System.out.println("Zamykanie aplikacji. Zapisywanie stanu ");
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("Closing application. Saving state...");
             finalBank.saveState(SAVE_FILE);
         }));
     }

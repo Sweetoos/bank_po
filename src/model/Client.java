@@ -3,153 +3,89 @@ package model;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class Client implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     public final int clientId;
-
     public String clientName;
     public String clientAddress;
+    public String username;
+    private String password;
 
     private final List<Account> accounts;
-    private final List<Deposit> deposits;
-
     private int mainAccountId;
-    private boolean isUseMainAccOp;
 
     private final MainVariables mv;
-    public transient UserInterface UI;
     private final Bank bank;
 
-    public Client(ClientData cd, MainVariables mv, UserInterface UI, Bank bank) {
+    public Client(ClientData cd, MainVariables mv, Bank bank) {
         this.clientId = cd.clientId;
-
         this.clientName = cd.clientName;
         this.clientAddress = cd.clientAddress;
-
         this.accounts = new ArrayList<>();
-        this.deposits = new ArrayList<>();
-
-        this.mainAccountId = -1;
-        this.isUseMainAccOp = true;
-
-        this.bank = bank;
+        this.username = cd.username;
+        this.password = cd.password;
         this.mv = mv;
-        this.UI = UI;
-
+        this.bank = bank;
         addAccount();
-        setAsMain(0);
     }
 
-    public double getAccBalance(int accountNumber) {
-        return accounts.get(accountNumber).getBalance();
-    }
-
-    public String getAccBalanceString(int accountNumber) {
-        return Double.toString(accounts.get(accountNumber).getBalance());
+    public boolean checkPassword(String pass) {
+        return this.password != null && this.password.equals(pass);
     }
 
     public double getBalance() {
-        return accounts.get(0).getBalance();
+        return getMainAccount()
+                .map(Account::getBalance)
+                .orElse(0.0);
     }
 
-    public String getBalanceString() {
-        return Double.toString(accounts.get(0).getBalance());
+    public Optional<Account> getMainAccount() {
+        return accounts.stream()
+                .filter(acc -> acc.getAccountNumber() == this.mainAccountId)
+                .findFirst();
     }
 
-    public void setAsMain(int accId) {
-        this.mainAccountId = accId;
+    public Optional<Account> getAccountById(int accountNumber) {
+        return accounts.stream()
+                .filter(acc -> acc.getAccountNumber() == accountNumber)
+                .findFirst();
+    }
+
+    public void setMainAccountId(int accountId) {
+        if (getAccountById(accountId).isPresent()) {
+            this.mainAccountId = accountId;
+        }
     }
 
     public int getMainAccountId() {
-        return mainAccountId;
+        return this.mainAccountId;
     }
 
-    public void useMainAccOp(boolean use) { // useMainAccountOption
-        if (use) {
-            this.isUseMainAccOp = true;
-        } else {
-            this.isUseMainAccOp = false;
+    public Account addAccount() {
+        int newAccNum = mv.newAccountNumber();
+        CheckingAccount newAccount = new CheckingAccount(newAccNum, mv);
+        accounts.add(newAccount);
+        bank.registerAcc(this.clientId, newAccNum);
+
+        if (accounts.size() == 1) {
+            setMainAccountId(newAccNum);
         }
-    }
 
-    public boolean isUseMaOp() {
-        return this.isUseMainAccOp;
-    }
-
-    // -- --
-
-
-    // -- --
-
-    public int addAccount() {
-        CheckingAccount account = new CheckingAccount(
-                mv.newAccountNumber(),
-                mv,
-                UI
-        );
-
-        accounts.add(account);
-
-        this.bank.registerAcc(this.clientId);
-        return accounts.size() - 1;
-    }
-
-    public String createAccList() {
-        String accList = "";
-
-        int cnt = 0;
-        for (Account account : this.accounts) {
-            accList += "      ID Konta: " + Integer.toString(cnt) + "\n" + account.getAccDataString();
-
-            cnt++;
-        }
-        accList += "\n";
-
-        return accList;
-    }
-
-    public Account getAcc(int accId) {
-        return accounts.get(accId); //Warto dodać zabezpieczenie przed wyjściem poza zakres!
-    }
-
-    // -- --
-
-
-    // -- --
-
-    // Wyjątek! : dodać wykorzystaniw sprawdzenia czy konto tx.inAccNumber jest w kontach tego klienta.
-    public void executeTransaction(TransactionData tx) {
-        int accId = searchAccount(tx.inAccNumber);
-
-        if (accId == -1) {
-            return;
-        } // <- TU
-
-        accounts.get(accId).receiveTransfer(tx);
-
-
-    }
-
-    private int searchAccount(int inAccNumber) {
-
-        int i = 0;
-        for (Account acc : accounts) {
-            if (acc.accountNumber == inAccNumber) {
-                return i;
-            }
-            i++;
-        }
-        return -1;
-    }
-
-    public void setUI(UserInterface ui) {
-        this.UI=ui;
+        return newAccount;
     }
 
     public List<Account> getAccounts() {
         return this.accounts;
     }
 
-    // -- --
+    public double getTotalBalance() {
+        double total = 0.0;
+        for (Account account : accounts) {
+            total += account.getBalance();
+        }
+        return total;
+    }
 }

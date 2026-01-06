@@ -3,7 +3,7 @@ package model;
 import java.io.Serializable;
 
 public class MainVariables implements Serializable {
-
+    private static final long serialVersionUID = 1L;
     private int lastAccountNumber;
     private int lastClientId;
     private int lastTransactionId;

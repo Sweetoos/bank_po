@@ -1,9 +1,9 @@
 package interfaces;
 
-import model.TransactionData;
+import model.Bank;
 
 public interface Transactable {
-    public int deposit ();
-    public int withdraw();
-    public TransactionData transfer();
+    void deposit (double amount);
+    boolean withdraw(double amount);
+    boolean transfer(double amount, int targetAccountNumber, Bank bank);
 }

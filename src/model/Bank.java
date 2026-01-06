@@ -7,16 +7,11 @@ import java.util.Map;
 
 public class Bank implements Serializable {
     private final Map<Integer, Client> clients;
-    private final Map<Integer, Integer> accountList; //First int is accNumber, second int is client ID.
+    private final Map<Integer, Integer> accountList; // <accNumber, client ID>
     private static final long serialVersionUID = 1L;
     private final MainVariables mv;
 
-    private transient IOConsole IO;
-    private transient UserInterface UI;
-
     public final String appVersion;
-
-    private transient Checks ch;
 
     public Bank() {
         this.appVersion = "3.0.0";
@@ -26,7 +21,73 @@ public class Bank implements Serializable {
         mv = new MainVariables();
     }
 
+    public Map<Integer, Client> getClients() {
+        return this.clients;
+    }
 
+    public void addClient(ClientData cd) {
+        cd.clientId = mv.newClientId();
+        Client client = new Client(cd, mv, this);
+        this.clients.put(client.clientId, client);
+    }
+
+    public void removeClient(int clientId) {
+        Client clientToRemove = clients.get(clientId);
+        if (clientToRemove != null) {
+            for (Account acc : clientToRemove.getAccounts()) {
+                accountList.remove(acc.getAccountNumber());
+            }
+            clients.remove(clientId);
+        }
+    }
+
+    public void registerAcc(int clientId, int accountNumber) {
+        this.accountList.put(accountNumber, clientId);
+    }
+
+    public Client findClientByAccountNumber(int accNum) {
+        Integer clientId = accountList.get(accNum);
+        return clientId != null ? clients.get(clientId) : null;
+    }
+
+    public Client authenticateClient(String username, String password) {
+        if (username == null || password == null) {
+            return null;
+        }
+        for (Client client : clients.values()) {
+            if (username.equals(client.username) && client.checkPassword(password)) {
+                return client;
+            }
+        }
+        return null;
+    }
+
+    public void saveState(String filename) {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(filename))) {
+            oos.writeObject(this);
+            System.out.println("Bank state has been successfully saved to " + filename + " file");
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            System.err.println("Error with saving save state: " + e.getMessage());
+        }
+    }
+
+
+    public static Bank loadState(String filename) throws FileNotFoundException {
+        File file = new File(filename);
+        if (!file.exists()) {
+            return null;
+        }
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(filename))) {
+            return (Bank) ois.readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            System.err.println("Error with loading state: " + e.getMessage());
+            return null;
+        }
+    }
+
+    /*
     public void doTasks() {
         ch.opOne = -1;
 
@@ -100,38 +161,7 @@ public class Bank implements Serializable {
 
     }
 
-    public void saveState(String filename) {
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(filename))) {
-            oos.writeObject(this);
-            System.out.println("Stan banku został pomyślnie zapisany do " + filename);
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
-    public static Bank loadState(String filename) throws FileNotFoundException {
-        File file = new File(filename);
-        if (!file.exists()) {
-            System.out.println("Plik zapisu nie istnieje. Aplikacja zostanie uruchomiona z nowym stanem");
-            return null;
-        }
-        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(filename))) {
-            Object obj = ois.readObject();
-            if (obj instanceof Bank) {
-                System.out.println("Stan banku został pomyślnie wczytany z " + filename);
-                return (Bank) obj;
-            } else {
-                System.err.println("Błąd: Odczytany obiekt nie jest instancją klasy model.Bank");
-                return null;
-            }
-        } catch (IOException | ClassNotFoundException e) {
-            System.err.println("Wystąpił błąd podczas wczytywania z " + e.getMessage());
-            e.printStackTrace();
-            return null;
-        }
-    }
 
 
     private int help1(int accId, Client client) {
@@ -147,26 +177,6 @@ public class Bank implements Serializable {
         return accId;
     }
 
-    public void addClient() {
-        ClientData cd = new ClientData();
-        cd.clientId = mv.newClientId();
-
-        cd = UI.addClient(cd);
-
-        mv.incLastAccountNumber();
-
-        Client client = new Client(
-                cd,
-                mv,
-                UI,
-                this
-        );
-        this.clients.put(mv.getLastClientId(), client);
-    }
-
-    public void registerAcc(int clientId) {
-        this.accountList.put(mv.getLastAccountNumber(), clientId);
-    }
 
     private void executeTransaction(TransactionData tx) {
 
@@ -185,18 +195,15 @@ public class Bank implements Serializable {
     }
 
     public void initializeTransientFields() {
-        this.IO=IOConsole.start(this.appVersion);
-        this.UI=new UserInterface(this.appVersion, this.IO);
-        this.ch=new Checks();
+        this.IO = IOConsole.start(this.appVersion);
+        this.UI = new UserInterface(this.appVersion, this.IO);
+        this.ch = new Checks();
 
-        if(this.clients!=null)
-        {
-            for(Client client:this.clients.values())
-            {
+        if (this.clients != null) {
+            for (Client client : this.clients.values()) {
                 client.setUI(this.UI);
-                if(client.getAccounts()!=null)
-                {
-                    for(Account account:client.getAccounts()){
+                if (client.getAccounts() != null) {
+                    for (Account account : client.getAccounts()) {
                         account.setUI(this.UI);
                     }
                 }
@@ -204,8 +211,6 @@ public class Bank implements Serializable {
         }
     }
 
-    public Collection<Object> getClients() {
-    }
 
     public class Checks implements Serializable {
 
@@ -222,5 +227,5 @@ public class Bank implements Serializable {
         }
 
     }
-
+*/
 }

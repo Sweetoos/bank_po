@@ -4,14 +4,14 @@ import java.io.Serializable;
 import java.time.LocalDate;
 
 public class Deposit implements Serializable {
-
-    public  final int depositId;
-    public  final String depositName;
-    public  final double amount;
-    public  final double interestRate;
-    public  final double durationInMonths;
-    public  final LocalDate openingDate;
-    public  final LocalDate closingDate;
+    private static final long serialVersionUID = 1L;
+    public final int depositId;
+    public final String depositName;
+    public final double amount;
+    public final double interestRate;
+    public final double durationInMonths;
+    public final LocalDate openingDate;
+    public final LocalDate closingDate;
 
     public Deposit(DepositAccData dd) {
         this.depositId = dd.depositId;

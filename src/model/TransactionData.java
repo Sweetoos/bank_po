@@ -2,24 +2,25 @@ package model;
 
 public class TransactionData {
 
-    public final int     transactionId;
+    public final int transactionId;
 
-    public       double  balance;
-    public       double  balanceAfter;
+    public double balance;
+    public double balanceAfter;
 
-    public       int     outAccNumber;  //Acc. num. out of whitch money are taken.
-    public       int     inAccNumber;   //Acc. num. it  to whitch money are going.
+    public int outAccNumber;  //Acc. num. out of whitch money are taken.
+    public int inAccNumber;   //Acc. num. it  to whitch money are going.
 
-    public       String  transactionType; private boolean traTyp = false;
+    public String transactionType;
+    private boolean traTyp = false;
 
-    public       double  amount;
+    public double amount;
 
-    public       boolean makeTransaction;
-    public       double  overdraftLimit;
+    public boolean makeTransaction;
+    public double overdraftLimit;
 
     // --
 
-    TransactionData(int transactionId, double balance){
+    TransactionData(int transactionId, double balance) {
 
         this.transactionId = transactionId;
 
@@ -28,7 +29,6 @@ public class TransactionData {
 
         this.outAccNumber = -2;
         this.inAccNumber = -2;
-
 
 
         this.transactionType = "";
@@ -40,7 +40,7 @@ public class TransactionData {
 
     }
 
-    TransactionData(TransactionData td){
+    TransactionData(TransactionData td) {
 
         this.transactionId = td.transactionId;
 
@@ -58,15 +58,25 @@ public class TransactionData {
         this.overdraftLimit = td.overdraftLimit;
     }
 
-    public void setBalanceAfterDeposit() { balanceAfter = balance + amount; }
-    public void setBalanceAfterWithdraw(){ balanceAfter = balance - amount; }
+    public void setBalanceAfterDeposit() {
+        balanceAfter = balance + amount;
+    }
+
+    public void setBalanceAfterWithdraw() {
+        balanceAfter = balance - amount;
+    }
 
 
-    public boolean firstCheck()  { return amount <= balance; }
-    public boolean secondCheck(){ return amount <= (balance + overdraftLimit); }
+    public boolean firstCheck() {
+        return amount <= balance;
+    }
 
-    public void setTransactionType(String transactionType){
-        if(traTyp == false){
+    public boolean secondCheck() {
+        return amount <= (balance + overdraftLimit);
+    }
+
+    public void setTransactionType(String transactionType) {
+        if (traTyp == false) {
             this.transactionType = transactionType;
             traTyp = true;
         }

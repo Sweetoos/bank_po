@@ -1,6 +1,7 @@
 package gui;
 
 import model.Bank;
+import model.Client;
 
 import javax.swing.*;
 import javax.swing.border.LineBorder;
@@ -28,8 +29,9 @@ public class LoginPage extends JFrame {
     JPanel passPanel = new JPanel();
 
     private Bank bank;
+
     public LoginPage(Bank bank) {
-        this.bank=bank;
+        this.bank = bank;
         super("Login Panel");
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -131,12 +133,16 @@ public class LoginPage extends JFrame {
             String pass = new String(passwd.getPassword());
             if (user.equals("admin") && pass.equals("admin")) {
                 dispose();
-
-                new MainMenu(this.bank);
-            } else {
-                JOptionPane.showMessageDialog(this, "Invalid Login or Password!", "Authorization Error", JOptionPane.ERROR_MESSAGE);
+                new MainMenu(this.bank, null);
+                return;
             }
-
+            Client authenticatedClient = bank.authenticateClient(user, pass);
+            if (authenticatedClient != null) {
+                dispose();
+                new MainMenu(this.bank, authenticatedClient);
+            } else {
+                JOptionPane.showMessageDialog(this, "Invalid username or password!", "Authentication Error", JOptionPane.ERROR_MESSAGE);
+            }
         });
         setVisible(true);
 

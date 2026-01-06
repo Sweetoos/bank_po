@@ -1,7 +1,7 @@
 package model;
 
 public class DepositAccData {
-    public int    depositId;
+    public int depositId;
     public String depositName;
 
     public double amount;

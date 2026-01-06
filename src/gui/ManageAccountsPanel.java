@@ -1,48 +1,37 @@
 package gui;
 
+import model.Bank;
+import model.Client;
+import model.ClientData;
+
 import javax.swing.*;
 import javax.swing.border.LineBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.util.List;
 import java.util.ArrayList;
 
 public class ManageAccountsPanel extends JPanel {
-    private Color colorBackground = new Color(51, 48, 46);
-    private Color colorCard = new Color(51, 45, 41);
-    private Color colorButton = new Color(255, 98, 0);
-    private Color colorTableRow = new Color(61, 54, 50);
-    private Color colorTableHeader = new Color(128, 88, 64);
-    private Color colorSelection = new Color(90, 76, 65);
-    private JPanel menuPanel;
-    private CardLayout cardLayout;
-    private ArrayList<Account> accounts;
-    private int lastAccountId = 0;
+    private final Color colorBackground = new Color(51, 48, 46);
+    private final Color colorCard = new Color(51, 45, 41);
+    private final Color colorButton = new Color(255, 98, 0);
+    private final Color colorTableRow = new Color(61, 54, 50);
+    private final Color colorTableHeader = new Color(128, 88, 64);
+    private final Color colorSelection = new Color(90, 76, 65);
+
+    private final MainMenu mainMenu;
+    private final CardLayout cardLayout;
+    private final Bank bank;
+
     private DefaultTableModel tableModel;
     private JTable accountTable;
+    private List<Client> clientList;
 
-    public ManageAccountsPanel(JPanel menuPanel, CardLayout cardLayout) {
-        this.menuPanel = menuPanel;
+    public ManageAccountsPanel(MainMenu mainMenu, CardLayout cardLayout, Bank bank) {
+        this.mainMenu = mainMenu;
         this.cardLayout = cardLayout;
-        initDemoData();
+        this.bank = bank;
         initPanel();
-    }
-
-    private void initDemoData() {
-        accounts = new ArrayList<>();
-        addAccountDemo("Admin", "Admin", 3039.76, "admin@example.com");
-        addAccountDemo("Demo1", "Standardowe", 200.13, "demo1@example.com");
-        addAccountDemo("Demo2", "Oszczędnościowe", 0.0, "demo2@example.com");
-        addAccountDemo("Demo3", "Standardowe", 1.20, "demo3@example.com");
-    }
-
-    private void addAccountDemo(String name, String type, double balance, String address) {
-        AccountData ad = new AccountData();
-        ad.accountId = ++lastAccountId;
-        ad.name = name;
-        ad.type = type;
-        ad.balance = balance;
-        ad.address = address;
-        accounts.add(new Account(ad));
     }
 
     private void initPanel() {
@@ -56,258 +45,136 @@ public class ManageAccountsPanel extends JPanel {
 
         JButton backBtn = new JButton("<");
         styleArrowButton(backBtn);
-
-        backBtn.addActionListener(e -> {
-            if (cardLayout != null && menuPanel != null) {
-                cardLayout.show(menuPanel, "MAIN");
-            }
-        });
+        backBtn.addActionListener(e -> cardLayout.show(mainMenu.getMenuPanel(), "MAIN"));
 
         JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         headerPanel.setOpaque(false);
         headerPanel.add(backBtn);
-
         card.add(headerPanel);
         card.add(Box.createRigidArea(new Dimension(0, 15)));
 
-        String[] columns = {"ID", "Name", "Type", "Balance"};
-
+        String[] columns = {"ID", "Name", "Address", "Total Balance"};
         tableModel = new DefaultTableModel(columns, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
+            @Override public boolean isCellEditable(int row, int column) { return false; }
         };
-
-        accountTable = new JTable(tableModel) {
-            @Override
-            public Component prepareRenderer(javax.swing.table.TableCellRenderer renderer, int row, int column) {
-                Component c = super.prepareRenderer(renderer, row, column);
-                if (isRowSelected(row)) {
-                    c.setBackground(colorSelection);
-                    c.setForeground(Color.WHITE);
-                } else {
-                    c.setBackground(colorTableRow);
-                    c.setForeground(Color.WHITE);
-                }
-
-                if (c instanceof JComponent jc)
-                    jc.setBorder(BorderFactory.createEmptyBorder());
-
-                return c;
-            }
-        };
-
-        accountTable.setFillsViewportHeight(true);
-        accountTable.setOpaque(false);  // Remove default background
-        accountTable.getTableHeader().setReorderingAllowed(false);
-        accountTable.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        accountTable.setRowHeight(36);
-
-        accountTable.getTableHeader().setBackground(colorTableHeader);
-        accountTable.getTableHeader().setForeground(colorButton);
-        accountTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 18));
-
-        accountTable.setSelectionForeground(Color.WHITE);
-        accountTable.setGridColor(colorBackground);
-        accountTable.setShowGrid(true);
-        accountTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-
-        int[] columnWidths = {50, 200, 200, 150};
-        for (int i = 0; i < columnWidths.length; i++) {
-            accountTable.getColumnModel().getColumn(i).setPreferredWidth(columnWidths[i]);
-        }
-
-        refreshTable(); // Load rows
+        accountTable = new JTable(tableModel);
+        setupTableStyle();
 
         JScrollPane scrollPane = new JScrollPane(accountTable);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.getViewport().setBackground(colorTableRow);
-        scrollPane.setPreferredSize(new Dimension(600, 400));
-
+        scrollPane.setPreferredSize(new Dimension(800, 400));
         card.add(scrollPane);
         card.add(Box.createRigidArea(new Dimension(0, 20)));
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
         buttonPanel.setOpaque(false);
-
-        JButton addBtn = new JButton("Add model.Account");
-        JButton removeBtn = new JButton("Remove model.Account");
-        JButton infoBtn = new JButton("model.Account Information");
-
+        JButton addBtn = new JButton("Add Client");
+        JButton removeBtn = new JButton("Remove Client");
         styleMenuButton(addBtn);
         styleMenuButton(removeBtn);
-        styleMenuButton(infoBtn);
 
-        addBtn.addActionListener(e -> addAccount());
-        removeBtn.addActionListener(e -> removeAccount());
-        infoBtn.addActionListener(e -> showAccountInformation());
+        addBtn.addActionListener(e -> addClient());
+        removeBtn.addActionListener(e -> removeClient());
 
         buttonPanel.add(addBtn);
         buttonPanel.add(removeBtn);
-        buttonPanel.add(infoBtn);
+        card.add(buttonPanel);
 
         JPanel centerWrap = new JPanel(new GridBagLayout());
         centerWrap.setOpaque(false);
         centerWrap.add(card);
-
         add(centerWrap, BorderLayout.CENTER);
     }
 
-    private void refreshTable() {
+    public void refreshTable() {
+        clientList = new ArrayList<>(bank.getClients().values());
         tableModel.setRowCount(0);
-        int minRows = 6;
-        int i = 0;
 
-        for (; i < accounts.size(); i++) {
-            Account acc = accounts.get(i);
-
+        for (Client client : clientList) {
             tableModel.addRow(new Object[]{
-                    acc.getId(),
-                    acc.getName(),
-                    acc.getType(),
-                    String.format("%.2f PLN", acc.getBalance())
+                    client.clientId,
+                    client.clientName,
+                    client.clientAddress,
+                    String.format("%.2f PLN", client.getTotalBalance())
             });
         }
+    }
 
-        for (; i < minRows; i++) {
-            tableModel.addRow(new Object[]{"", "", "", ""});
+    private void addClient() {
+        String name = JOptionPane.showInputDialog(this, "Enter client's full name:");
+        if (name == null || name.trim().isEmpty()) return;
+
+        String address = JOptionPane.showInputDialog(this, "Enter client's address:");
+        if (address == null) return;
+
+        String username = JOptionPane.showInputDialog(this, "Enter a username for the client:");
+        if (username == null || username.trim().isEmpty()) return;
+
+        String password = JOptionPane.showInputDialog(this, "Enter a password for the client:");
+        if (password == null || password.trim().isEmpty()) return;
+
+        ClientData cd = new ClientData();
+        cd.clientName = name;
+        cd.clientAddress = address;
+        cd.username = username;
+        cd.password = password;
+
+        bank.addClient(cd);
+        mainMenu.refreshAllViews();
+    }
+
+    private void removeClient() {
+        int selectedRow = accountTable.getSelectedRow();
+        if (selectedRow != -1) {
+            Client clientToRemove = clientList.get(selectedRow);
+            int confirm = JOptionPane.showConfirmDialog(this,
+                    "Are you sure you want to remove client: " + clientToRemove.clientName + "?",
+                    "Confirm Deletion", JOptionPane.YES_NO_OPTION);
+
+            if (confirm == JOptionPane.YES_OPTION) {
+                bank.removeClient(clientToRemove.clientId);
+                mainMenu.refreshAllViews();
+            }
+        } else {
+            JOptionPane.showMessageDialog(this, "Please select a client to remove.", "Info", JOptionPane.INFORMATION_MESSAGE);
         }
     }
 
-    private void addAccount() {
-        AccountData ad = new AccountData();
-        ad.accountId = ++lastAccountId;
-
-        ad.name = JOptionPane.showInputDialog(this, "Enter account name:");
-        if (ad.name == null || ad.name.trim().isEmpty()) return;
-
-        String[] types = {"Admin", "Standardowe", "Oszczędnościowe"};
-        ad.type = (String) JOptionPane.showInputDialog(
-                this, "Select account type:", "model.Account Type",
-                JOptionPane.QUESTION_MESSAGE, null, types, types[1]
-        );
-        if (ad.type == null) return;
-
-        String addr = JOptionPane.showInputDialog(this, "Enter account address:");
-        ad.address = (addr == null ? "" : addr.trim());
-
-        ad.balance = 0.0;
-
-        accounts.add(new Account(ad));
-        refreshTable();
-    }
-
-    private void removeAccount() {
-        int selected = accountTable.getSelectedRow();
-        if (selected != -1) {
-            accounts.remove(selected);
-            refreshTable();
-        }
-    }
-
-    private void showAccountInformation() {
-        int selected = accountTable.getSelectedRow();
-        if (selected != -1) {
-            Account acc = accounts.get(selected);
-
-            String info =
-                    "ID: " + acc.getId() +
-                            "   Name: " + acc.getName() +
-                            "   Type: " + acc.getType() +
-                            "   Balance: " + String.format("%.2f PLN", acc.getBalance()) +
-                            "   Address: " + acc.getAddress();
-
-            JOptionPane.showMessageDialog(this, info, "model.Account Information", JOptionPane.INFORMATION_MESSAGE);
-        }
+    private void setupTableStyle() {
+        accountTable.setFillsViewportHeight(true);
+        accountTable.getTableHeader().setReorderingAllowed(false);
+        accountTable.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        accountTable.setRowHeight(36);
+        accountTable.getTableHeader().setBackground(colorTableHeader);
+        accountTable.getTableHeader().setForeground(colorButton);
+        accountTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 18));
+        accountTable.setSelectionBackground(colorSelection);
+        accountTable.setSelectionForeground(Color.WHITE);
+        accountTable.setGridColor(colorBackground);
+        accountTable.setShowGrid(true);
+        accountTable.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
     }
 
     private void styleArrowButton(JButton btn) {
         btn.setFont(new Font("Segoe UI", Font.BOLD, 28));
-        btn.setBackground(colorCard);
         btn.setForeground(colorButton);
         btn.setFocusPainted(false);
         btn.setBorder(BorderFactory.createEmptyBorder());
         btn.setPreferredSize(new Dimension(60, 40));
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setFocusable(false);
+        btn.setOpaque(false);
         btn.setContentAreaFilled(false);
-        btn.setOpaque(true);
-
-        btn.getModel().addChangeListener(e -> {
-            ButtonModel model = btn.getModel();
-            if (model.isPressed())
-                btn.setForeground(colorButton.darker());
-            else
-                btn.setForeground(colorButton);
-        });
     }
 
     private void styleMenuButton(JButton btn) {
-        btn.setBackground(colorBackground);
         btn.setForeground(colorButton);
         btn.setBorder(new LineBorder(colorButton, 3, true));
         btn.setFont(new Font("Segoe UI", Font.BOLD, 16));
         btn.setFocusPainted(false);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btn.setPreferredSize(new Dimension(180, 40));
-        btn.setFocusable(false);
+        btn.setOpaque(false);
         btn.setContentAreaFilled(false);
-        btn.setOpaque(true);
-
-        btn.getModel().addChangeListener(e -> {
-            ButtonModel model = btn.getModel();
-            if (model.isPressed()) {
-                btn.setForeground(colorButton.darker());
-                btn.setBorder(new LineBorder(colorButton.darker(), 3, true));
-            } else {
-                btn.setForeground(colorButton);
-                btn.setBorder(new LineBorder(colorButton, 3, true));
-            }
-        });
-    }
-
-    private static class Account {
-        private int id;
-        private String name;
-        private String type;
-        private double balance;
-        private String address;
-
-        public Account(AccountData data) {
-            this.id = data.accountId;
-            this.name = data.name;
-            this.type = data.type;
-            this.balance = data.balance;
-            this.address = data.address;
-        }
-
-        public int getId() {
-            return id;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public String getType() {
-            return type;
-        }
-
-        public double getBalance() {
-            return balance;
-        }
-
-        public String getAddress() {
-            return address;
-        }
-    }
-
-    private static class AccountData {
-        int accountId;
-        String name;
-        String type;
-        double balance;
-        String address;
     }
 }

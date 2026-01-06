@@ -1,5 +1,7 @@
 package gui;
 
+import model.Account;
+import model.Bank;
 import model.Client;
 
 import javax.swing.*;
@@ -10,27 +12,33 @@ import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 
 public class TransactionPanel extends JPanel {
+    private final Color colorBackground = new Color(51, 48, 46);
+    private final Color colorCard = new Color(61, 54, 50);
+    private final Color colorButton = new Color(255, 98, 0);
+    private final Color colorTextField = new Color(79, 71, 65);
+    private final Color colorSelection = new Color(128, 88, 64);
 
-    private Color colorBackground = new Color(51, 48, 46);
-    private Color colorCard = new Color(61, 54, 50);
-    private Color colorButton = new Color(255, 98, 0);
-    private Color colorTextField = new Color(79, 71, 65);
-    private Color colorSelection = new Color(128, 88, 64);
+    private final MainMenu mainMenu;
+    private final CardLayout cardLayout;
+    private final Bank bank;
+    private Client currentClient;
 
-    private JPanel menuPanel;
-    private CardLayout cardLayout;
+    private JTextField amountField;
+    private JTextField accField;
+    private JRadioButton withdrawRadio;
+    private JRadioButton depositRadio;
+    private JRadioButton transferRadio;
 
-    private double balance = 1000.00;
-    private double overdraftLimit = 300.00;
-
-    public TransactionPanel(JPanel menuPanel, CardLayout cardLayout) {
-        this.menuPanel = menuPanel;
+    public TransactionPanel(MainMenu mainMenu, CardLayout cardLayout, Bank bank, Client client) {
+        this.mainMenu = mainMenu;
         this.cardLayout = cardLayout;
+        this.bank = bank;
+        this.currentClient = client;
         initPanel();
     }
 
-    public TransactionPanel() {
-        initPanel();
+    public void setCurrentClient(Client client) {
+        this.currentClient = client;
     }
 
     private void initPanel() {
@@ -46,46 +54,34 @@ public class TransactionPanel extends JPanel {
 
         JButton backBtn = new JButton("<");
         styleArrowButton(backBtn);
-        backBtn.addActionListener(e -> {
-            if (cardLayout != null && menuPanel != null) {
-                cardLayout.show(menuPanel, "MAIN");
-            }
-        });
-
-        JButton changeLimitBtn = new JButton("Change Overdraft");
-        styleMenuButton(changeLimitBtn);
-        changeLimitBtn.setPreferredSize(new Dimension(180, 28));
-        changeLimitBtn.addActionListener(e -> changeOverdraftLimit());
-
+        backBtn.addActionListener(e -> cardLayout.show(mainMenu.getMenuPanel(), "MAIN"));
         headerPanel.add(backBtn, BorderLayout.WEST);
-        headerPanel.add(changeLimitBtn, BorderLayout.EAST);
-
         card.add(headerPanel);
         card.add(Box.createRigidArea(new Dimension(0, 15)));
 
         JPanel radioPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         radioPanel.setOpaque(false);
 
-        JLabel lblType = new JLabel("model.Transaction Type:");
+        JLabel lblType = new JLabel("Transaction Type:");
         lblType.setForeground(colorButton);
 
-        JRadioButton withdraw = new JRadioButton("Withdraw");
-        JRadioButton deposit = new JRadioButton("model.Deposit");
-        JRadioButton transfer = new JRadioButton("Transfer");
+        withdrawRadio = new JRadioButton("Withdraw");
+        depositRadio = new JRadioButton("Deposit");
+        transferRadio = new JRadioButton("Transfer");
 
-        styleRadioButton(withdraw);
-        styleRadioButton(deposit);
-        styleRadioButton(transfer);
+        styleRadioButton(withdrawRadio);
+        styleRadioButton(depositRadio);
+        styleRadioButton(transferRadio);
 
         ButtonGroup group = new ButtonGroup();
-        group.add(withdraw);
-        group.add(deposit);
-        group.add(transfer);
+        group.add(withdrawRadio);
+        group.add(depositRadio);
+        group.add(transferRadio);
 
         radioPanel.add(lblType);
-        radioPanel.add(withdraw);
-        radioPanel.add(deposit);
-        radioPanel.add(transfer);
+        radioPanel.add(withdrawRadio);
+        radioPanel.add(depositRadio);
+        radioPanel.add(transferRadio);
 
         card.add(radioPanel);
         card.add(Box.createRigidArea(new Dimension(0, 12)));
@@ -97,9 +93,8 @@ public class TransactionPanel extends JPanel {
         JLabel amountLabel = new JLabel("Amount:");
         amountLabel.setForeground(colorButton);
 
-        JTextField amountField = new JTextField();
+        amountField = new JTextField();
         styleTextField(amountField);
-
         ((AbstractDocument) amountField.getDocument()).setDocumentFilter(new DecimalDocumentFilter());
 
         amountPanel.add(amountLabel);
@@ -111,122 +106,118 @@ public class TransactionPanel extends JPanel {
         accPanel.setLayout(new BoxLayout(accPanel, BoxLayout.Y_AXIS));
         accPanel.setOpaque(false);
 
-        JLabel accLabel = new JLabel("model.Bank model.Account ID:");
+        JLabel accLabel = new JLabel("Target Account Number:");
         accLabel.setForeground(colorButton);
 
-        JTextField accField = new JTextField();
+        accField = new JTextField();
         styleTextField(accField);
+        ((AbstractDocument) accField.getDocument()).setDocumentFilter(new IntegerDocumentFilter());
 
         accPanel.add(accLabel);
         accPanel.add(accField);
         accPanel.setVisible(false);
 
-        transfer.addActionListener(e -> accPanel.setVisible(true));
-        withdraw.addActionListener(e -> accPanel.setVisible(false));
-        deposit.addActionListener(e -> accPanel.setVisible(false));
+        transferRadio.addActionListener(e -> accPanel.setVisible(true));
+        withdrawRadio.addActionListener(e -> accPanel.setVisible(false));
+        depositRadio.addActionListener(e -> accPanel.setVisible(false));
 
         card.add(accPanel);
         card.add(Box.createRigidArea(new Dimension(0, 15)));
 
-        JButton submit = new JButton("Submit");
-        styleMenuButton(submit);
+        JButton submitBtn = new JButton("Submit");
+        styleMenuButton(submitBtn);
+        submitBtn.addActionListener(e -> executeTransaction());
 
         JPanel submitPanel = new JPanel();
         submitPanel.setOpaque(false);
-        submitPanel.add(submit);
+        submitPanel.add(submitBtn);
 
         card.add(submitPanel);
-
-        JLabel resultLabel = new JLabel("");
-        resultLabel.setForeground(colorButton);
-        resultLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        card.add(resultLabel);
-        card.add(Box.createRigidArea(new Dimension(0, 10)));
 
         JPanel centerWrap = new JPanel(new GridBagLayout());
         centerWrap.setOpaque(false);
         centerWrap.add(card);
 
         add(centerWrap, BorderLayout.CENTER);
+    }
 
-        submit.addActionListener(e -> {
+    private void executeTransaction() {
+        if (currentClient == null) {
+            JOptionPane.showMessageDialog(this, "No client selected.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
 
-            if (!withdraw.isSelected() && !deposit.isSelected() && !transfer.isSelected()) {
-                JOptionPane.showMessageDialog(this, "Select a transaction type.", "Info", JOptionPane.INFORMATION_MESSAGE);
+        Account mainAccount = currentClient.getMainAccount().orElse(null);
+        if (mainAccount == null) {
+            JOptionPane.showMessageDialog(this, "Selected client has no main account.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        double amount;
+        try {
+            amount = Double.parseDouble(amountField.getText());
+            if (amount <= 0) throw new NumberFormatException();
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Invalid or non-positive amount entered.", "Input Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        boolean success = false;
+        String operationType = "";
+
+        if (depositRadio.isSelected()) {
+            operationType = "Deposit";
+            mainAccount.deposit(amount);
+            success = true;
+        } else if (withdrawRadio.isSelected()) {
+            operationType = "Withdrawal";
+            success = mainAccount.withdraw(amount);
+        } else if (transferRadio.isSelected()) {
+            operationType = "Transfer";
+            try {
+                int targetAccNum = Integer.parseInt(accField.getText());
+                success = mainAccount.transfer(amount, targetAccNum, bank);
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Invalid target account number.", "Input Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
+        } else {
+            JOptionPane.showMessageDialog(this, "Please select a transaction type.", "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
 
-            if (amountField.getText().isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Amount is required.", "Info", JOptionPane.INFORMATION_MESSAGE);
-                return;
-            }
-
-            double amount = Double.parseDouble(amountField.getText());
-
-            if (amount <= 0) {
-                JOptionPane.showMessageDialog(this, "Amount must be greater than 0.", "Info", JOptionPane.INFORMATION_MESSAGE);
-                return;
-            }
-
-            if (deposit.isSelected()) {
-                depositOperation(amount);
-            } else if (withdraw.isSelected()) {
-                withdrawOperation(amount);
-            } else if (transfer.isSelected()) {
-                if (accField.getText().isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Target account ID is required.", "Info", JOptionPane.INFORMATION_MESSAGE);
-                    return;
-                }
-                transferOperation(amount);
-            }
-        });
+        if (success) {
+            String message = operationType + " successful!\nNew balance: " + String.format("%.2f PLN", mainAccount.getBalance());
+            JOptionPane.showMessageDialog(this, message, "Success", JOptionPane.INFORMATION_MESSAGE);
+            amountField.setText("");
+            accField.setText("");
+            mainMenu.refreshAllViews();
+        } else {
+            String message = operationType + " failed.\nPlease check available funds or target account number.";
+            JOptionPane.showMessageDialog(this, message, "Failure", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void styleArrowButton(JButton btn) {
         btn.setFont(new Font("Segoe UI", Font.BOLD, 28));
-        btn.setBackground(colorCard);
         btn.setForeground(colorButton);
         btn.setFocusPainted(false);
         btn.setBorder(BorderFactory.createEmptyBorder());
         btn.setPreferredSize(new Dimension(60, 40));
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setFocusable(false);
+        btn.setOpaque(false);
         btn.setContentAreaFilled(false);
-        btn.setOpaque(true);
-
-        btn.getModel().addChangeListener(e -> {
-            ButtonModel model = btn.getModel();
-            if (model.isPressed()) {
-                btn.setForeground(colorButton.darker());
-            } else {
-                btn.setForeground(colorButton);
-            }
-        });
     }
 
     private void styleMenuButton(JButton btn) {
-        btn.setBackground(colorCard);
         btn.setForeground(colorButton);
         btn.setBorder(BorderFactory.createLineBorder(colorButton, 3, true));
         btn.setFont(new Font("Segoe UI", Font.BOLD, 16));
         btn.setFocusPainted(false);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btn.setPreferredSize(new Dimension(180, 40));
-        btn.setFocusable(false);
+        btn.setOpaque(false);
         btn.setContentAreaFilled(false);
-        btn.setOpaque(true);
-
-        btn.getModel().addChangeListener(e -> {
-            ButtonModel model = (ButtonModel) e.getSource();
-            if (model.isPressed()) {
-                btn.setForeground(colorButton.darker());
-                btn.setBorder(BorderFactory.createLineBorder(colorButton.darker(), 3, true));
-            } else {
-                btn.setForeground(colorButton);
-                btn.setBorder(BorderFactory.createLineBorder(colorButton, 3, true));
-            }
-        });
     }
 
     private void styleTextField(JTextField field) {
@@ -235,125 +226,35 @@ public class TransactionPanel extends JPanel {
         field.setForeground(colorButton);
         field.setCaretColor(colorButton);
         field.setBorder(BorderFactory.createLineBorder(colorButton, 2, true));
-
     }
 
     private void styleRadioButton(JRadioButton btn) {
-        btn.setOpaque(true);
-        btn.setBackground(colorCard);
+        btn.setOpaque(false);
         btn.setForeground(colorButton);
         btn.setFocusPainted(false);
-        btn.setBorder(BorderFactory.createLineBorder(colorButton, 1, true));
         btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(120, 28));
-
-        btn.setUI(new javax.swing.plaf.basic.BasicRadioButtonUI());
-
-        btn.getModel().addChangeListener(e -> {
-            ButtonModel model = btn.getModel();
-            if (model.isPressed()) {
-                btn.setForeground(colorButton.darker());
-                btn.setBorder(BorderFactory.createLineBorder(colorButton.darker(), 1, true));
-            } else {
-                btn.setForeground(colorButton);
-                btn.setBorder(BorderFactory.createLineBorder(colorButton, 1, true));
-            }
-        });
-    }
-
-    private void depositOperation(double amount) {
-        balance += amount;
-        JOptionPane.showMessageDialog(this, "Deposited: " + amount + "\nNew balance: " + balance, "model.Deposit", JOptionPane.INFORMATION_MESSAGE);
-    }
-
-    private void withdrawOperation(double amount) {
-        int tries = 0;
-        while (tries < 3) {
-            if (firstCheck(amount)) {
-                balance -= amount;
-                JOptionPane.showMessageDialog(this, "Withdrawn: " + amount + "\nNew balance: " + balance, "Withdraw", JOptionPane.INFORMATION_MESSAGE);
-                return;
-            }
-            if (secondCheck(amount)) {
-                balance -= amount;
-                JOptionPane.showMessageDialog(this, "Withdrawn (overdraft): " + amount + "\nNew balance: " + balance, "Withdraw", JOptionPane.INFORMATION_MESSAGE);
-                return;
-            }
-            tries++;
-        }
-        JOptionPane.showMessageDialog(this, "Insufficient funds. Too many attempts.", "Error", JOptionPane.ERROR_MESSAGE);
-    }
-
-    private void transferOperation(double amount) {
-        int tries = 0;
-        while (tries < 3) {
-            if (firstCheck(amount)) {
-                balance -= amount;
-                JOptionPane.showMessageDialog(this, "Transferred: " + amount + "\nNew balance: " + balance, "Transfer", JOptionPane.INFORMATION_MESSAGE);
-                return;
-            }
-            if (secondCheck(amount)) {
-                balance -= amount;
-                JOptionPane.showMessageDialog(this, "Transferred (overdraft): " + amount + "\nNew balance: " + balance, "Transfer", JOptionPane.INFORMATION_MESSAGE);
-                return;
-            }
-            tries++;
-        }
-        JOptionPane.showMessageDialog(this, "Insufficient funds. Too many attempts.", "Error", JOptionPane.ERROR_MESSAGE);
-    }
-
-    private void changeOverdraftLimit() {
-        String input = JOptionPane.showInputDialog(this, "Enter new overdraft limit:", overdraftLimit);
-        if (input != null) {
-            try {
-                double newLimit = Double.parseDouble(input);
-                if (newLimit < 0) throw new NumberFormatException();
-                overdraftLimit = newLimit;
-                JOptionPane.showMessageDialog(this, "New overdraft limit: " + overdraftLimit, "Info", JOptionPane.INFORMATION_MESSAGE);
-            } catch (NumberFormatException e) {
-                JOptionPane.showMessageDialog(this, "Invalid input.", "Error", JOptionPane.ERROR_MESSAGE);
-            }
-        }
-    }
-
-    private boolean firstCheck(double amount) {
-        return amount <= balance;
-    }
-
-    private boolean secondCheck(double amount) {
-        return amount <= balance + overdraftLimit;
-    }
-
-    public void setCurrentClient(Client currentClient) {
-        //TODO: write this method
     }
 
     private static class DecimalDocumentFilter extends DocumentFilter {
-
-        private final String regex = "\\d{0,7}(\\.\\d{0,2})?";
-
+        private final String regex = "\\d{0,10}(\\.\\d{0,2})?";
         @Override
-        public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs)
-                throws BadLocationException {
-
-            String newText = fb.getDocument().getText(0, fb.getDocument().getLength());
-            newText = newText.substring(0, offset) + text + newText.substring(offset + length);
-
-            if (newText.matches(regex) || newText.isEmpty()) {
+        public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs) throws BadLocationException {
+            String currentText = fb.getDocument().getText(0, fb.getDocument().getLength());
+            String newText = currentText.substring(0, offset) + text + currentText.substring(offset + length);
+            if (newText.matches(regex)) {
                 super.replace(fb, offset, length, text, attrs);
             }
         }
+    }
 
+    private static class IntegerDocumentFilter extends DocumentFilter {
         @Override
-        public void insertString(FilterBypass fb, int offset, String text, AttributeSet attr)
-                throws BadLocationException {
-
-            String newText = fb.getDocument().getText(0, fb.getDocument().getLength());
-            newText = newText.substring(0, offset) + text + newText;
-
-            if (newText.matches(regex) || newText.isEmpty()) {
-                super.insertString(fb, offset, text, attr);
+        public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs) throws BadLocationException {
+            String currentText = fb.getDocument().getText(0, fb.getDocument().getLength());
+            String newText = currentText.substring(0, offset) + text + currentText.substring(offset + length);
+            if (newText.matches("\\d*")) {
+                super.replace(fb, offset, length, text, attrs);
             }
         }
     }
