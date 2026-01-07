@@ -85,21 +85,26 @@ public class Bank implements Serializable {
             this.currentDate = this.currentDate.plusDays(1);
             runDailyProcesses();
         }
-        System.out.println("Time advanced by " + days + " days. Current simulation date: " + this.currentDate);
     }
 
     private void runDailyProcesses() {
-        if (this.currentDate.getDayOfYear() == 1) {
-            System.out.println("Happy New Year! Running end-of-year processes for " + (this.currentDate.getYear() - 1));
-            runEndOfYearInterestProcess();
-        }
-    }
-
-    public void runEndOfYearInterestProcess() {
         for (Client client : clients.values()) {
             for (Account account : client.getAccounts()) {
                 if (account instanceof SavingsAccount) {
-                    ((SavingsAccount) account).applyAnnualInterest(this.currentDate);
+                    ((SavingsAccount) account).calculateDailyInterest();
+                }
+            }
+        }
+        if (this.currentDate.getDayOfMonth() == this.currentDate.lengthOfMonth()) {
+            runMonthlyCapitalizationProcess();
+        }
+    }
+
+    public void runMonthlyCapitalizationProcess() {
+        for (Client client : clients.values()) {
+            for (Account account : client.getAccounts()) {
+                if (account instanceof SavingsAccount) {
+                    ((SavingsAccount) account).capitalizeInterest();
                 }
             }
         }

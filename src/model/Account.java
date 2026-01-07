@@ -14,7 +14,6 @@ public abstract class Account implements Transactable, Serializable {
     protected double balance;
     protected final List<Transaction> transactionHistory;
     protected final MainVariables mv;
-    protected LocalDate lastInterestAppliedDate;
 
     Account(int accountNumber, String accountType, MainVariables mv, LocalDate creationDate) {
         this.accountNumber = accountNumber;
@@ -22,7 +21,6 @@ public abstract class Account implements Transactable, Serializable {
         this.balance = 0;
         this.transactionHistory = new ArrayList<>();
         this.mv = mv;
-        this.lastInterestAppliedDate = creationDate;
     }
 
     public double getBalance() {
@@ -42,6 +40,5 @@ public abstract class Account implements Transactable, Serializable {
     public abstract boolean transfer(double amount, int targetAccountNumber, Bank bank);
 
     protected void receiveTransfer(double amount, int fromAccountNumber) {
-        // Domyślna implementacja jest pusta, podklasy ją nadpisują
     }
 }
