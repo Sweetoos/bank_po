@@ -1,141 +1,141 @@
 @startuml
 !theme plain
-left to right direction
 skinparam classAttributeIconSize 0
+skinparam packageStyle rect
 
-interface Transactable {
-  + {abstract} deposit() : int
-  + {abstract} withdraw() : int
-  + {abstract} transfer() : TransactionData
-}
+package "Model (Backend)" <<Database>> {
 
-abstract class Account {
-  + final accountNumber: int
-  + final accountType: String
-  # balance: double
-  # transactionHistory: List<Transaction>
-  # mv: MainVariables
-  # UI: UserInterface
-  # getBalance(): double
-  + getAccDataString(): String
-  + receiveTransfer(tr: TransactionData): void
-}
+    interface Transactable {
+        + deposit(amount: double): void
+        + withdraw(amount: double): boolean
+        + transfer(amount: double, target: int, bank: Bank): boolean
+    }
 
-class Bank {
-  - clients: Map<Integer, Client>
-  - accountList: Map<Integer, Integer>
-  - mv: MainVariables
-  - IO: IOConsole
-  - UI: UserInterface
-  + appVersion: String
-  + doTasks(): void
-  + addClient(): void
-  + registerAcc(clientId: int): void
-  - executeTransaction(tx: TransactionData): void
-}
+    abstract class Account implements Transactable {
+        + final accountNumber: int
+        + final accountType: String
+        # balance: double
+        # transactionHistory: List<Transaction>
+        # mv: MainVariables
+    }
 
-class Client {
-  + final clientId: int
-  + clientName: String
-  + clientAddress: String
-  - accounts: List<Account>
-  - deposits: List<Deposit>
-  - bank: Bank
-  - mv: MainVariables
-  + UI: UserInterface
-  + addAccount(): int
-  + getAcc(accId: int): Account
-  + executeTransaction(tx: TransactionData): void
-}
+    class CheckingAccount extends Account {
+        + deposit(amount: double): void
+        + withdraw(amount: double): boolean
+        + transfer(amount: double, target: int, bank: Bank): boolean
+    }
 
-class CheckingAccount {
-  + deposit(): int
-  + withdraw(): int
-  + transfer(): TransactionData
-  + receiveTransfer(tr: TransactionData): void
-}
+    class SavingsAccount extends Account {
+        - annualInterestRate: double
+        + calculateDailyInterest(): void
+        + capitalizeInterest(): void
+    }
 
-class SavingsAccount {
-  - annualInterestRate: double
-  + getAnnualInterestRate(): double
-}
+    class Bank {
+        - clients: Map<Integer, Client>
+        - accountList: Map<Integer, Integer>
+        - currentDate: LocalDate
+        + addClient(cd: ClientData): void
+        + removeClient(clientId: int): void
+        + authenticateClient(user: String, pass: String): Client
+        + advanceTimeByDays(days: int): void
+        + saveState(filename: String): void
+        + {static} loadState(filename: String): Bank
+    }
 
-class Transaction {
-  + final transactionId: int
-  + final amount: double
-  + final transactionType: String
-}
+    class Client {
+        + final clientId: int
+        + clientName: String
+        + clientAddress: String
+        + username: String
+        - password: String
+        - accounts: List<Account>
+        + addAccount(type: String, rate: double): Account
+        + checkPassword(pass: String): boolean
+        + setMainAccountByNumber(accNum: int): boolean
+        + getTotalBalance(): double
+    }
 
-class TransactionData {
-  + final transactionId: int
-  + amount: double
-  + makeTransaction: boolean
-  + outAccNumber: int
-  + inAccNumber: int
-  + setBalanceAfterDeposit(): void
-  + setBalanceAfterWithdraw(): void
-}
+    class Transaction {
+        + final transactionId: int
+        + final amount: double
+        + final transactionType: String
+    }
 
-class UserInterface {
-  + final appVersion: String
-  + final IO: IOConsole
-  + firstLayer(): int
-  + addClient(cd: ClientData): ClientData
-  + deposit(dd: TransactionData): TransactionData
-  + withdraw(wd: TransactionData): TransactionData
-  + transfer(td: TransactionData): TransactionData
-}
+    class MainVariables {
+        + newAccountNumber(): int
+        + newClientId(): int
+        + newTransactionId(): int
+    }
 
-class IOConsole {
-  - in: Scanner
-  + print(message: String): void
-  + println(message: String): void
-  + read(): String
-  + printReadInt(message: String): int
-}
-
-class MainVariables {
-  - lastAccountNumber: int
-  - lastClientId: int
-  - lastTransactionId: int
-  + newAccountNumber(): int
-  + newClientId(): int
-  + newTransactionId(): int
-}
-
-class ClientData {
-  + clientId: int
-  + clientName: String
-  + clientAddress: String
-}
-
-class Deposit {
-    + final depositId: int
-    + final amount: double
+    class ClientData {}
 }
 
 
-Account <|-- CheckingAccount
-Account <|-- SavingsAccount
+package "GUI (Frontend)" <<Frame>> {
 
-Transactable <|.. Account
+    class Main {
+        + {static} main(args: String[]): void
+    }
 
-Bank "1" *-- "1" MainVariables
-Bank "1" *-- "1" UserInterface
-UserInterface "1" *-- "1" IOConsole
-Bank "1" o-- "*" Client
-Client "1" o-- "1..*" Account
-Client "1" o-- "*" Deposit
-Account "1" o-- "*" Transaction
+    class LoginPage {
+        - bank: Bank
+        + LoginPage(bank: Bank)
+    }
 
-Client "*" -- "1" Bank
+    class MainMenu {
+        - bank: Bank
+        - loggedInClient: Client
+        - isAdminView: boolean
+        + MainMenu(bank: Bank, client: Client)
+        + refreshAllViews(): void
+    }
 
-Bank ..> ClientData : uses to create
-Bank ..> TransactionData
-Client ..> TransactionData
-Account ..> TransactionData
-Transaction ..> TransactionData : created from
-UserInterface ..> ClientData
-UserInterface ..> TransactionData
+    class ManageAccountsPanel {
+        - bank: Bank
+        - mainMenu: MainMenu
+        + refreshTable(): void
+        - addClient(): void
+        - removeClient(): void
+    }
+
+    class ClientAccountsPanel {
+        - mainMenu: MainMenu
+        - loggedInClient: Client
+        + refreshTable(): void
+        - setAsMainAccount(): void
+    }
+
+    class TransactionPanel {
+        - mainMenu: MainMenu
+        - bank: Bank
+        - currentClient: Client
+        - executeTransaction(): void
+    }
+}
+
+
+
+Main ..> Bank : creates/loads
+Main ..> LoginPage : creates
+
+LoginPage ..> MainMenu : creates
+MainMenu *-- ManageAccountsPanel
+MainMenu *-- ClientAccountsPanel
+MainMenu *-- TransactionPanel
+
+Bank "1" o-- "*" Client : manages
+Client "1" o-- "1..*" Account : owns
+Account "1" o-- "*" Transaction : has
+
+Bank *-- MainVariables
+
+LoginPage ..> Bank : uses authenticate
+ManageAccountsPanel ..> Bank : uses add/remove
+ManageAccountsPanel ..> ClientData : creates
+TransactionPanel ..> Bank : uses for transfers
+TransactionPanel ..> Account : uses deposit/withdraw/transfer
+ClientAccountsPanel ..> Account : uses deposit/withdraw/transfer
+ClientAccountsPanel ..> Client : uses setMainAccount
 
 @enduml
