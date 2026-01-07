@@ -1,6 +1,7 @@
 package model;
 
 import java.io.Serializable;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -20,16 +21,19 @@ public class Client implements Serializable {
     private final MainVariables mv;
     private final Bank bank;
 
+    public static final String ACCOUNT_TYPE_CHECKING = "Checking";
+    public static final String ACCOUNT_TYPE_SAVINGS = "Savings";
+
     public Client(ClientData cd, MainVariables mv, Bank bank) {
         this.clientId = cd.clientId;
         this.clientName = cd.clientName;
         this.clientAddress = cd.clientAddress;
-        this.accounts = new ArrayList<>();
         this.username = cd.username;
         this.password = cd.password;
+        this.accounts = new ArrayList<>();
         this.mv = mv;
         this.bank = bank;
-        addAccount();
+        addAccount(ACCOUNT_TYPE_CHECKING, 0);
     }
 
     public boolean checkPassword(String pass) {
@@ -37,9 +41,11 @@ public class Client implements Serializable {
     }
 
     public double getBalance() {
-        return getMainAccount()
-                .map(Account::getBalance)
-                .orElse(0.0);
+        return getMainAccount().map(Account::getBalance).orElse(0.0);
+    }
+
+    public double getTotalBalance() {
+        return accounts.stream().mapToDouble(Account::getBalance).sum();
     }
 
     public Optional<Account> getMainAccount() {
@@ -54,24 +60,40 @@ public class Client implements Serializable {
                 .findFirst();
     }
 
-    public void setMainAccountId(int accountId) {
-        if (getAccountById(accountId).isPresent()) {
-            this.mainAccountId = accountId;
+    public boolean setMainAccountByNumber(int accountNumber) {
+        for (Account acc : accounts) {
+            if (acc.getAccountNumber() == accountNumber) {
+                if (acc instanceof SavingsAccount) {
+                    System.err.println("Attempted to set a Savings Account as main. Operation denied.");
+                    return false;
+                }
+                this.mainAccountId = accountNumber;
+                return true;
+            }
         }
+        return false;
     }
 
     public int getMainAccountId() {
         return this.mainAccountId;
     }
 
-    public Account addAccount() {
+    public Account addAccount(String accountType, double interestRate) {
         int newAccNum = mv.newAccountNumber();
-        CheckingAccount newAccount = new CheckingAccount(newAccNum, mv);
+        Account newAccount;
+        LocalDate creationDate = bank.getCurrentDate();
+
+        if (accountType.equals(ACCOUNT_TYPE_SAVINGS)) {
+            newAccount = new SavingsAccount(newAccNum, interestRate, mv, creationDate);
+        } else {
+            newAccount = new CheckingAccount(newAccNum, mv, creationDate);
+        }
+
         accounts.add(newAccount);
         bank.registerAcc(this.clientId, newAccNum);
 
         if (accounts.size() == 1) {
-            setMainAccountId(newAccNum);
+            setMainAccountByNumber(newAccNum);
         }
 
         return newAccount;
@@ -79,13 +101,5 @@ public class Client implements Serializable {
 
     public List<Account> getAccounts() {
         return this.accounts;
-    }
-
-    public double getTotalBalance() {
-        double total = 0.0;
-        for (Account account : accounts) {
-            total += account.getBalance();
-        }
-        return total;
     }
 }

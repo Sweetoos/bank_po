@@ -5,11 +5,13 @@ import model.Bank;
 import model.Client;
 
 import javax.swing.*;
-import java.awt.*;
+import javax.swing.border.LineBorder;
 import javax.swing.text.AbstractDocument;
-import javax.swing.text.DocumentFilter;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
+import javax.swing.text.DocumentFilter;
+import java.awt.*;
+import java.util.List;
 
 public class TransactionPanel extends JPanel {
     private final Color colorBackground = new Color(51, 48, 46);
@@ -28,6 +30,7 @@ public class TransactionPanel extends JPanel {
     private JRadioButton withdrawRadio;
     private JRadioButton depositRadio;
     private JRadioButton transferRadio;
+    private JPanel accPanel;
 
     public TransactionPanel(MainMenu mainMenu, CardLayout cardLayout, Bank bank, Client client) {
         this.mainMenu = mainMenu;
@@ -51,7 +54,6 @@ public class TransactionPanel extends JPanel {
 
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setOpaque(false);
-
         JButton backBtn = new JButton("<");
         styleArrowButton(backBtn);
         backBtn.addActionListener(e -> cardLayout.show(mainMenu.getMenuPanel(), "MAIN"));
@@ -61,95 +63,72 @@ public class TransactionPanel extends JPanel {
 
         JPanel radioPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         radioPanel.setOpaque(false);
-
         JLabel lblType = new JLabel("Transaction Type:");
         lblType.setForeground(colorButton);
-
         withdrawRadio = new JRadioButton("Withdraw");
         depositRadio = new JRadioButton("Deposit");
         transferRadio = new JRadioButton("Transfer");
-
         styleRadioButton(withdrawRadio);
         styleRadioButton(depositRadio);
         styleRadioButton(transferRadio);
-
         ButtonGroup group = new ButtonGroup();
         group.add(withdrawRadio);
         group.add(depositRadio);
         group.add(transferRadio);
-
         radioPanel.add(lblType);
-        radioPanel.add(withdrawRadio);
         radioPanel.add(depositRadio);
+        radioPanel.add(withdrawRadio);
         radioPanel.add(transferRadio);
-
         card.add(radioPanel);
         card.add(Box.createRigidArea(new Dimension(0, 12)));
 
         JPanel amountPanel = new JPanel();
         amountPanel.setLayout(new BoxLayout(amountPanel, BoxLayout.Y_AXIS));
         amountPanel.setOpaque(false);
-
         JLabel amountLabel = new JLabel("Amount:");
         amountLabel.setForeground(colorButton);
-
         amountField = new JTextField();
         styleTextField(amountField);
         ((AbstractDocument) amountField.getDocument()).setDocumentFilter(new DecimalDocumentFilter());
-
         amountPanel.add(amountLabel);
         amountPanel.add(amountField);
         card.add(amountPanel);
         card.add(Box.createRigidArea(new Dimension(0, 12)));
 
-        JPanel accPanel = new JPanel();
+        accPanel = new JPanel();
         accPanel.setLayout(new BoxLayout(accPanel, BoxLayout.Y_AXIS));
         accPanel.setOpaque(false);
-
         JLabel accLabel = new JLabel("Target Account Number:");
         accLabel.setForeground(colorButton);
-
         accField = new JTextField();
         styleTextField(accField);
         ((AbstractDocument) accField.getDocument()).setDocumentFilter(new IntegerDocumentFilter());
-
         accPanel.add(accLabel);
         accPanel.add(accField);
         accPanel.setVisible(false);
-
         transferRadio.addActionListener(e -> accPanel.setVisible(true));
         withdrawRadio.addActionListener(e -> accPanel.setVisible(false));
         depositRadio.addActionListener(e -> accPanel.setVisible(false));
-
         card.add(accPanel);
         card.add(Box.createRigidArea(new Dimension(0, 15)));
 
         JButton submitBtn = new JButton("Submit");
         styleMenuButton(submitBtn);
         submitBtn.addActionListener(e -> executeTransaction());
-
         JPanel submitPanel = new JPanel();
         submitPanel.setOpaque(false);
         submitPanel.add(submitBtn);
-
         card.add(submitPanel);
 
         JPanel centerWrap = new JPanel(new GridBagLayout());
         centerWrap.setOpaque(false);
         centerWrap.add(card);
-
         add(centerWrap, BorderLayout.CENTER);
     }
 
     private void executeTransaction() {
         if (currentClient == null) {
             JOptionPane.showMessageDialog(this, "No client selected.", "Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        Account mainAccount = currentClient.getMainAccount().orElse(null);
-        if (mainAccount == null) {
-            JOptionPane.showMessageDialog(this, "Selected client has no main account.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
@@ -162,40 +141,81 @@ public class TransactionPanel extends JPanel {
             return;
         }
 
-        boolean success = false;
-        String operationType = "";
-
         if (depositRadio.isSelected()) {
-            operationType = "Deposit";
-            mainAccount.deposit(amount);
-            success = true;
+            performDeposit(amount);
         } else if (withdrawRadio.isSelected()) {
-            operationType = "Withdrawal";
-            success = mainAccount.withdraw(amount);
+            performWithdraw(amount);
         } else if (transferRadio.isSelected()) {
-            operationType = "Transfer";
-            try {
-                int targetAccNum = Integer.parseInt(accField.getText());
-                success = mainAccount.transfer(amount, targetAccNum, bank);
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, "Invalid target account number.", "Input Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
+            performTransfer(amount);
         } else {
             JOptionPane.showMessageDialog(this, "Please select a transaction type.", "Info", JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
+
+    private void performDeposit(double amount) {
+        Account mainAccount = currentClient.getMainAccount().orElse(null);
+        if (mainAccount == null) {
+            JOptionPane.showMessageDialog(this, "Client has no main account to deposit to.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        mainAccount.deposit(amount);
+        JOptionPane.showMessageDialog(this, "Deposit successful!\nNew balance: " + String.format("%.2f PLN", mainAccount.getBalance()), "Success", JOptionPane.INFORMATION_MESSAGE);
+        resetFields();
+    }
+
+    private void performWithdraw(double amount) {
+        Account mainAccount = currentClient.getMainAccount().orElse(null);
+        if (mainAccount == null) {
+            JOptionPane.showMessageDialog(this, "Client has no main account to withdraw from.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        boolean success = mainAccount.withdraw(amount);
+        if (success) {
+            JOptionPane.showMessageDialog(this, "Withdrawal successful!\nNew balance: " + String.format("%.2f PLN", mainAccount.getBalance()), "Success", JOptionPane.INFORMATION_MESSAGE);
+            resetFields();
+        } else {
+            JOptionPane.showMessageDialog(this, "Withdrawal failed. Insufficient funds.", "Failure", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void performTransfer(double amount) {
+        List<Account> accounts = currentClient.getAccounts();
+        if (accounts.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "You have no accounts to transfer from.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
-        if (success) {
-            String message = operationType + " successful!\nNew balance: " + String.format("%.2f PLN", mainAccount.getBalance());
-            JOptionPane.showMessageDialog(this, message, "Success", JOptionPane.INFORMATION_MESSAGE);
-            amountField.setText("");
-            accField.setText("");
-            mainMenu.refreshAllViews();
-        } else {
-            String message = operationType + " failed.\nPlease check available funds or target account number.";
-            JOptionPane.showMessageDialog(this, message, "Failure", JOptionPane.ERROR_MESSAGE);
+        Object[] accountChoices = accounts.stream()
+                .map(acc -> "Acc. " + acc.getAccountNumber() + " (" + acc.accountType + ")")
+                .toArray();
+
+        int choiceIndex = JOptionPane.showOptionDialog(this, "Select source account for the transfer:",
+                "Source Account", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, accountChoices, accountChoices[0]);
+
+        if (choiceIndex == -1) return;
+
+        Account sourceAccount = accounts.get(choiceIndex);
+        int targetAccNum;
+        try {
+            targetAccNum = Integer.parseInt(accField.getText());
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Invalid target account number.", "Input Error", JOptionPane.ERROR_MESSAGE);
+            return;
         }
+
+        boolean success = sourceAccount.transfer(amount, targetAccNum, bank);
+        if (success) {
+            JOptionPane.showMessageDialog(this, "Transfer successful!", "Success", JOptionPane.INFORMATION_MESSAGE);
+            resetFields();
+        } else {
+            JOptionPane.showMessageDialog(this, "Transfer failed. Check funds or target account number.", "Failure", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void resetFields() {
+        amountField.setText("");
+        accField.setText("");
+        mainMenu.refreshAllViews();
     }
 
     private void styleArrowButton(JButton btn) {
@@ -211,7 +231,7 @@ public class TransactionPanel extends JPanel {
 
     private void styleMenuButton(JButton btn) {
         btn.setForeground(colorButton);
-        btn.setBorder(BorderFactory.createLineBorder(colorButton, 3, true));
+        btn.setBorder(new LineBorder(colorButton, 3, true));
         btn.setFont(new Font("Segoe UI", Font.BOLD, 16));
         btn.setFocusPainted(false);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));

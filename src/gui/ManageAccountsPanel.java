@@ -1,5 +1,6 @@
 package gui;
 
+import model.Account;
 import model.Bank;
 import model.Client;
 import model.ClientData;
@@ -8,8 +9,8 @@ import javax.swing.*;
 import javax.swing.border.LineBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 public class ManageAccountsPanel extends JPanel {
     private final Color colorBackground = new Color(51, 48, 46);
@@ -24,7 +25,7 @@ public class ManageAccountsPanel extends JPanel {
     private final Bank bank;
 
     private DefaultTableModel tableModel;
-    private JTable accountTable;
+    private JTable clientTable;
     private List<Client> clientList;
 
     public ManageAccountsPanel(MainMenu mainMenu, CardLayout cardLayout, Bank bank) {
@@ -57,10 +58,10 @@ public class ManageAccountsPanel extends JPanel {
         tableModel = new DefaultTableModel(columns, 0) {
             @Override public boolean isCellEditable(int row, int column) { return false; }
         };
-        accountTable = new JTable(tableModel);
-        setupTableStyle();
+        clientTable = new JTable(tableModel);
+        setupTableStyle(clientTable);
 
-        JScrollPane scrollPane = new JScrollPane(accountTable);
+        JScrollPane scrollPane = new JScrollPane(clientTable);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.getViewport().setBackground(colorTableRow);
         scrollPane.setPreferredSize(new Dimension(800, 400));
@@ -69,16 +70,25 @@ public class ManageAccountsPanel extends JPanel {
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
         buttonPanel.setOpaque(false);
-        JButton addBtn = new JButton("Add Client");
-        JButton removeBtn = new JButton("Remove Client");
-        styleMenuButton(addBtn);
-        styleMenuButton(removeBtn);
+        JButton addClientBtn = new JButton("Add Client");
+        JButton removeClientBtn = new JButton("Remove Client");
+        JButton addAccountBtn = new JButton("Add Account");
+        JButton viewAccountsBtn = new JButton("View Accounts");
 
-        addBtn.addActionListener(e -> addClient());
-        removeBtn.addActionListener(e -> removeClient());
+        styleMenuButton(addClientBtn);
+        styleMenuButton(removeClientBtn);
+        styleMenuButton(addAccountBtn);
+        styleMenuButton(viewAccountsBtn);
 
-        buttonPanel.add(addBtn);
-        buttonPanel.add(removeBtn);
+        addClientBtn.addActionListener(e -> addClient());
+        removeClientBtn.addActionListener(e -> removeClient());
+        addAccountBtn.addActionListener(e -> addAccountToClient());
+        viewAccountsBtn.addActionListener(e -> viewClientAccounts());
+
+        buttonPanel.add(addClientBtn);
+        buttonPanel.add(removeClientBtn);
+        buttonPanel.add(addAccountBtn);
+        buttonPanel.add(viewAccountsBtn);
         card.add(buttonPanel);
 
         JPanel centerWrap = new JPanel(new GridBagLayout());
@@ -108,11 +118,17 @@ public class ManageAccountsPanel extends JPanel {
         String address = JOptionPane.showInputDialog(this, "Enter client's address:");
         if (address == null) return;
 
-        String username = JOptionPane.showInputDialog(this, "Enter a username for the client:");
-        if (username == null || username.trim().isEmpty()) return;
+        String username = JOptionPane.showInputDialog(this, "Enter a USERNAME for the client:");
+        if (username == null || username.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Username cannot be empty. Operation cancelled.");
+            return;
+        }
 
-        String password = JOptionPane.showInputDialog(this, "Enter a password for the client:");
-        if (password == null || password.trim().isEmpty()) return;
+        String password = JOptionPane.showInputDialog(this, "Enter a PASSWORD for the client:");
+        if (password == null || password.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Password cannot be empty. Operation cancelled.");
+            return;
+        }
 
         ClientData cd = new ClientData();
         cd.clientName = name;
@@ -125,11 +141,10 @@ public class ManageAccountsPanel extends JPanel {
     }
 
     private void removeClient() {
-        int selectedRow = accountTable.getSelectedRow();
+        int selectedRow = clientTable.getSelectedRow();
         if (selectedRow != -1) {
             Client clientToRemove = clientList.get(selectedRow);
-            int confirm = JOptionPane.showConfirmDialog(this,
-                    "Are you sure you want to remove client: " + clientToRemove.clientName + "?",
+            int confirm = JOptionPane.showConfirmDialog(this, "Are you sure you want to remove client: " + clientToRemove.clientName + "?",
                     "Confirm Deletion", JOptionPane.YES_NO_OPTION);
 
             if (confirm == JOptionPane.YES_OPTION) {
@@ -141,19 +156,73 @@ public class ManageAccountsPanel extends JPanel {
         }
     }
 
-    private void setupTableStyle() {
-        accountTable.setFillsViewportHeight(true);
-        accountTable.getTableHeader().setReorderingAllowed(false);
-        accountTable.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        accountTable.setRowHeight(36);
-        accountTable.getTableHeader().setBackground(colorTableHeader);
-        accountTable.getTableHeader().setForeground(colorButton);
-        accountTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 18));
-        accountTable.setSelectionBackground(colorSelection);
-        accountTable.setSelectionForeground(Color.WHITE);
-        accountTable.setGridColor(colorBackground);
-        accountTable.setShowGrid(true);
-        accountTable.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+    private void addAccountToClient() {
+        int selectedRow = clientTable.getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, "Please select a client first.");
+            return;
+        }
+        Client selectedClient = clientList.get(selectedRow);
+
+        String[] accountTypes = {Client.ACCOUNT_TYPE_CHECKING, Client.ACCOUNT_TYPE_SAVINGS};
+        String chosenType = (String) JOptionPane.showInputDialog(this, "Select account type for " + selectedClient.clientName + ":",
+                "Add Account", JOptionPane.QUESTION_MESSAGE, null, accountTypes, accountTypes[0]);
+
+        if (chosenType != null) {
+            double interestRate = 0;
+            if (chosenType.equals(Client.ACCOUNT_TYPE_SAVINGS)) {
+                interestRate = bank.getSavingsAccountInterestRate();
+            }
+            selectedClient.addAccount(chosenType, interestRate);
+            mainMenu.refreshAllViews();
+            JOptionPane.showMessageDialog(this, chosenType + " account with " + interestRate + "% rate added to " + selectedClient.clientName);
+        }
+    }
+
+    private void viewClientAccounts() {
+        int selectedRow = clientTable.getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, "Please select a client first.");
+            return;
+        }
+        Client selectedClient = clientList.get(selectedRow);
+
+        JDialog accountsDialog = new JDialog(mainMenu, "Accounts for " + selectedClient.clientName, true);
+        accountsDialog.setSize(600, 300);
+        accountsDialog.setLocationRelativeTo(mainMenu);
+
+        String[] columns = {"Account Number", "Account Type", "Balance", "Is Main"};
+        DefaultTableModel accountsModel = new DefaultTableModel(columns, 0);
+        JTable accountsTable = new JTable(accountsModel);
+        setupTableStyle(accountsTable);
+
+        for (Account acc : selectedClient.getAccounts()) {
+            boolean isMain = acc.getAccountNumber() == selectedClient.getMainAccountId();
+            accountsModel.addRow(new Object[]{
+                    acc.getAccountNumber(),
+                    acc.accountType,
+                    String.format("%.2f PLN", acc.getBalance()),
+                    isMain ? "YES" : ""
+            });
+        }
+
+        accountsDialog.add(new JScrollPane(accountsTable));
+        accountsDialog.setVisible(true);
+    }
+
+    private void setupTableStyle(JTable table) {
+        table.setFillsViewportHeight(true);
+        table.getTableHeader().setReorderingAllowed(false);
+        table.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        table.setRowHeight(36);
+        table.getTableHeader().setBackground(colorTableHeader);
+        table.getTableHeader().setForeground(colorButton);
+        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 18));
+        table.setSelectionBackground(colorSelection);
+        table.setSelectionForeground(Color.WHITE);
+        table.setGridColor(colorBackground);
+        table.setShowGrid(true);
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
     }
 
     private void styleArrowButton(JButton btn) {
